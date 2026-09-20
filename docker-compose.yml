@@ -1,0 +1,18 @@
+services:
+  needlecheck:
+    image: ghcr.io/t0bst3r/needlecheck:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CRATE_PATH: /data/crate.json
+    volumes:
+      - needlecheck-data:/data
+      # Mount the crate.json from your downloaded world pack:
+      # - ./crate.json:/data/crate.json:ro
+
+volumes:
+  needlecheck-data:

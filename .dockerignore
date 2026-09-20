@@ -1,0 +1,14 @@
+.git
+.grok
+.vercel
+artifacts
+screenshots
+node_modules
+bot/node_modules
+data
+.env
+.env.*
+*.log
+dist
+build
+public/__grok
