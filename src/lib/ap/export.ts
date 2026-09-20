@@ -1,81 +1,59 @@
-import { FILLER_NAMES, GAME_NAME } from "../flavor";
+import worldPy from "../../../apworld/needlecheck/__init__.py?raw";
+import archipelagoMeta from "../../../apworld/needlecheck/archipelago.json?raw";
+import gameInfo from "../../../apworld/needlecheck/docs/en_Needlecheck.md?raw";
+import setupDoc from "../../../apworld/needlecheck/docs/setup_en.md?raw";
+import { GAME_NAME } from "../flavor";
 import type { Album } from "../types";
+import { toCrateFile } from "./crate-file";
 
-export function buildManualPack(crate: Album[]) {
-  const starters = crate.filter((a) => a.starter);
-  const game = {
-    game: GAME_NAME,
-    creator: "Needlecheck",
-    filler_item_name: FILLER_NAMES[0],
-    starting_items: [
-      {
-        items: starters.map((a) => a.itemName),
-      },
-    ],
-  };
-
-  const items = crate.map((a) => ({
-    name: a.itemName,
-    category: ["Albums"],
-    classification: a.starter ? "useful" : "progression",
-    count: 1,
-  }));
-
-  const locations = crate.flatMap((a) =>
-    a.tracks.map((t) => ({
-      name: t.locationName,
-      category: [a.name],
-      requires: `|${a.itemName}|`,
-    })),
-  );
-
-  const regions = {
-    Menu: {
-      starting: true,
-      connects_to: crate.map((a) => a.name),
-    },
-    ...Object.fromEntries(
-      crate.map((a) => [
-        a.name,
-        {
-          requires: `|${a.itemName}|`,
-        },
-      ]),
-    ),
-  };
-
-  const yaml = [
+function playerYaml() {
+  return [
     `name: DJ`,
     `game: ${GAME_NAME}`,
-    `${GAME_NAME}:`,
-    `  progression_balancing: 50`,
-    `  accessibility: items`,
+    `${GAME_NAME}: {}`,
     ``,
   ].join("\n");
+}
 
+function packReadme() {
+  return [
+    "Needlecheck world pack",
+    "",
+    "The crate was built in Needlecheck (Spotify / catalog), not in Archipelago's options page.",
+    "",
+    "1. Copy needlecheck.apworld into Archipelago custom_worlds (or lib/worlds).",
+    "2. Copy Needlecheck.yaml into Players and set name: to your slot.",
+    "3. Generate and host.",
+    "4. Connect the web station or Discord bot with game name Needlecheck.",
+    "",
+    "crate.json is the same crate the bot loads from /data/crate.json.",
+    "",
+  ].join("\n");
+}
+
+export function buildWorldPack(crate: Album[]) {
+  const crateJson = JSON.stringify(toCrateFile(crate), null, 2);
+  const apworld = zipBytes({
+    "needlecheck/__init__.py": worldPy,
+    "needlecheck/archipelago.json": archipelagoMeta,
+    "needlecheck/data/crate.json": crateJson,
+    "needlecheck/docs/en_Needlecheck.md": gameInfo,
+    "needlecheck/docs/setup_en.md": setupDoc,
+  });
   return {
-    "game.json": JSON.stringify(game, null, 2),
-    "items.json": JSON.stringify(items, null, 2),
-    "locations.json": JSON.stringify(locations, null, 2),
-    "regions.json": JSON.stringify(regions, null, 2),
-    "Needlecheck.yaml": yaml,
-    "README.txt": [
-      "Needlecheck — Manual for Archipelago world pack",
-      "",
-      "1. Install Manual for Archipelago (https://github.com/ManualForArchipelago/Manual).",
-      "2. Create a new Manual apworld and drop these JSON files into it.",
-      "3. Put Needlecheck.yaml in the Archipelago Players folder (rename the slot).",
-      "4. Generate, host, then connect from Needlecheck → World with game name \"Needlecheck\".",
-      "",
-      "Items are albums. Locations are first plays of each track.",
-      "A track is only in logic once its album item has been received.",
-      "",
-    ].join("\n"),
+    "needlecheck.apworld": apworld,
+    "Needlecheck.yaml": playerYaml(),
+    "crate.json": crateJson,
+    "README.txt": packReadme(),
   };
 }
 
-export function downloadText(filename: string, contents: string, mime = "application/json") {
-  const blob = new Blob([contents], { type: mime });
+export function downloadWorldPack(crate: Album[]) {
+  downloadZip("needlecheck-world.zip", buildWorldPack(crate));
+}
+
+export function downloadZip(filename: string, files: Record<string, string | Uint8Array>) {
+  const blob = new Blob([zipBytes(files)] as BlobPart[], { type: "application/zip" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -84,16 +62,15 @@ export function downloadText(filename: string, contents: string, mime = "applica
   URL.revokeObjectURL(url);
 }
 
-/** Uncompressed ZIP so the pack is one file — no extra deps. */
-export function downloadZip(filename: string, files: Record<string, string>) {
+function zipBytes(files: Record<string, string | Uint8Array>): Uint8Array {
+  const encoder = new TextEncoder();
   const chunks: Uint8Array[] = [];
   const central: Uint8Array[] = [];
-  const encoder = new TextEncoder();
-  let offset = 0;
   const now = dosTime(new Date());
+  let offset = 0;
 
-  for (const [name, text] of Object.entries(files)) {
-    const data = encoder.encode(text);
+  for (const [name, contents] of Object.entries(files)) {
+    const data = typeof contents === "string" ? encoder.encode(contents) : contents;
     const n = encoder.encode(name);
     const crc = crc32(data);
     const local = new Uint8Array(30 + n.length);
@@ -137,13 +114,14 @@ export function downloadZip(filename: string, files: Record<string, string>) {
   ev.setUint32(12, centralSize, true);
   ev.setUint32(16, offset, true);
 
-  const blob = new Blob([...chunks, ...central, end] as BlobPart[], { type: "application/zip" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  const total = offset + centralSize + end.length;
+  const out = new Uint8Array(total);
+  let p = 0;
+  for (const c of [...chunks, ...central, end]) {
+    out.set(c, p);
+    p += c.length;
+  }
+  return out;
 }
 
 function dosTime(d: Date) {

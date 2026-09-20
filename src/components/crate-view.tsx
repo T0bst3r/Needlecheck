@@ -1,13 +1,13 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Lock, Search, Star, Trash2, Unlock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { lookupAlbum, searchAlbums } from "@/lib/itunes";
+import { catalogStatus, lookupCatalog, searchCatalog } from "@/lib/catalog";
 import { useStation } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-type Hit = { id: string; name: string; artist: string; artwork: string; year: number | null };
+type Hit = { id: string; name: string; artist: string; artwork: string; year: number | null; source?: string };
 
 export function CrateView() {
   const crate = useStation((s) => s.crate);
@@ -20,6 +20,12 @@ export function CrateView() {
   const [hits, setHits] = useState<Hit[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [source, setSource] = useState<"spotify" | "itunes" | null>(null);
+  const [spotify, setSpotify] = useState(false);
+
+  useEffect(() => {
+    void catalogStatus().then((s) => setSpotify(s.spotify)).catch(() => undefined);
+  }, []);
 
   async function search(e: FormEvent) {
     e.preventDefault();
@@ -27,9 +33,10 @@ export function CrateView() {
     setBusy(true);
     setError("");
     try {
-      const results = await searchAlbums({ data: { term: term.trim() } });
-      setHits(results);
-      if (!results.length) setError("No albums matched that search.");
+      const results = await searchCatalog({ data: { term: term.trim() } });
+      setHits(results.hits);
+      setSource(results.source);
+      if (!results.hits.length) setError("No albums matched that search.");
     } catch {
       setError("Catalog search failed. Try again in a moment.");
     } finally {
@@ -41,7 +48,7 @@ export function CrateView() {
     setBusy(true);
     setError("");
     try {
-      const album = await lookupAlbum({ data: { id } });
+      const album = await lookupCatalog({ data: { id } });
       addAlbum(album);
       setHits((h) => h.filter((x) => x.id !== id));
     } catch {
@@ -56,8 +63,12 @@ export function CrateView() {
       <header>
         <h2 className="font-display text-2xl font-medium tracking-tight">The crate</h2>
         <p className="mt-1 max-w-xl text-sm text-muted">
-          Albums you add become Archipelago items. Each track is a location, checked the first time it plays.
-          Starter albums begin unlocked as sphere 0.
+          Build the Archipelago world here. Albums you add become items; each track is a first-play location. Star a
+          starter for sphere 0, then download the apworld from World. Nothing is configured in the Archipelago options
+          page.
+        </p>
+        <p className="mt-2 text-xs text-subtle">
+          {spotify ? "Searching Spotify." : "Spotify credentials are not set — searching the public catalog instead."}
         </p>
       </header>
 
@@ -67,7 +78,7 @@ export function CrateView() {
           <Input
             value={term}
             onChange={(e) => setTerm(e.target.value)}
-            placeholder="Search the catalog — artist or album"
+            placeholder={spotify ? "Search Spotify — artist or album" : "Search the catalog — artist or album"}
             className="pl-10"
             aria-label="Search albums"
           />
@@ -77,6 +88,9 @@ export function CrateView() {
         </Button>
       </form>
       {error ? <p className="text-sm text-danger">{error}</p> : null}
+      {source && hits.length ? (
+        <p className="text-xs text-subtle">{source === "spotify" ? "Spotify results" : "Catalog results"}</p>
+      ) : null}
 
       {hits.length ? (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -133,6 +147,7 @@ export function CrateView() {
                   </span>
                   {album.starter ? <Badge variant="accent">starter</Badge> : null}
                   {on && !album.starter ? <Badge variant="check">unlocked</Badge> : null}
+                  {album.source === "spotify" ? <Badge>spotify</Badge> : null}
                 </p>
               </div>
               <div className="flex shrink-0 gap-1">

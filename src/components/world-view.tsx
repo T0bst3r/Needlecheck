@@ -126,13 +126,13 @@ export function WorldView() {
             </Button>
           )}
           <Button variant="outline" onClick={exportPack}>
-            Download world pack
+            Download apworld
           </Button>
         </div>
         <p className="mt-4 text-sm leading-relaxed text-muted">
-          Full-length Discord voice playback needs a bot token and a voice server this preview cannot host. Needlecheck
-          is the listening client: 30-second catalog previews, first plays as location checks, album items unlocking the
-          rotation. Generate with the Manual pack, host a room, then connect here with the same slot and game name.
+          The crate on the Crate tab is the world. Download bakes it into needlecheck.apworld plus a slot YAML with no
+          album options. Put the apworld in Archipelago's custom worlds folder, generate, then connect here or run
+          the Discord bot from the published image.
         </p>
       </section>
 

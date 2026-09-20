@@ -24,6 +24,8 @@ function toRaw(album: Album): RawAlbum {
     artist: album.artist,
     artwork: album.artwork,
     year: album.year,
+    spotifyId: album.spotifyId,
+    source: album.source,
     tracks: album.tracks.map((t) => ({
       id: t.id,
       name: t.name,
@@ -31,6 +33,7 @@ function toRaw(album: Album): RawAlbum {
       previewUrl: t.previewUrl,
       durationMs: t.durationMs,
       trackNumber: t.trackNumber,
+      spotifyId: t.spotifyId,
     })),
   };
 }
@@ -798,10 +801,13 @@ export const useStation = create<StationState>()(
         },
 
         exportPack: () => {
-          void import("./ap/export").then(({ buildManualPack, downloadZip }) => {
-            const files = buildManualPack(get().crate);
-            downloadZip("needlecheck-apworld.zip", files);
-            push({ kind: "system", author: "system", text: "Downloaded needlecheck-apworld.zip — Manual JSON + YAML for generation." });
+          void import("./ap/export").then(({ downloadWorldPack }) => {
+            downloadWorldPack(get().crate);
+            push({
+              kind: "system",
+              author: "system",
+              text: "Downloaded needlecheck-world.zip — apworld with this crate baked in, plus YAML.",
+            });
           });
         },
 

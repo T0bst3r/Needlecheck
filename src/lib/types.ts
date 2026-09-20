@@ -7,6 +7,7 @@ export type RawTrack = {
   previewUrl: string | null;
   durationMs: number;
   trackNumber: number;
+  spotifyId?: string;
 };
 
 export type RawAlbum = {
@@ -16,6 +17,8 @@ export type RawAlbum = {
   artwork: string;
   year: number | null;
   tracks: RawTrack[];
+  spotifyId?: string;
+  source?: "spotify" | "itunes";
 };
 
 export type Track = RawTrack & {

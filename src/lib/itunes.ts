@@ -47,40 +47,45 @@ function toRawAlbum(album: ItunesAlbum, tracks: ItunesTrack[]): RawAlbum {
     artwork: art600(album.artworkUrl100),
     year: album.releaseDate ? Number(album.releaseDate.slice(0, 4)) || null : null,
     tracks: rawTracks,
+    source: "itunes",
   };
+}
+
+export async function searchItunesAlbums(term: string) {
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=album&limit=12`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Catalog search failed");
+  const json = (await res.json()) as { results?: ItunesAlbum[] };
+  return (json.results ?? [])
+    .filter((r) => r.collectionId && r.collectionName)
+    .map((r) => ({
+      id: String(r.collectionId),
+      name: r.collectionName,
+      artist: r.artistName,
+      artwork: art600(r.artworkUrl100),
+      year: r.releaseDate ? Number(r.releaseDate.slice(0, 4)) || null : null,
+      source: "itunes" as const,
+    }));
+}
+
+export async function lookupItunesAlbum(id: string): Promise<RawAlbum> {
+  const url = `https://itunes.apple.com/lookup?id=${encodeURIComponent(id)}&entity=song`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Album lookup failed");
+  const json = (await res.json()) as { results?: Array<ItunesAlbum | ItunesTrack> };
+  const rows = json.results ?? [];
+  const album = rows.find((r) => (r as ItunesAlbum).collectionType === "Album" || (r as ItunesAlbum).wrapperType === "collection") as
+    | ItunesAlbum
+    | undefined;
+  const tracks = rows.filter((r) => (r as ItunesTrack).wrapperType === "track") as ItunesTrack[];
+  if (!album) throw new Error("Album not found");
+  return toRawAlbum(album, tracks);
 }
 
 export const searchAlbums = createServerFn({ method: "POST" })
   .validator(z.object({ term: z.string().min(1).max(80) }))
-  .handler(async ({ data }) => {
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(data.term)}&entity=album&limit=12`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Catalog search failed");
-    const json = (await res.json()) as { results?: ItunesAlbum[] };
-    const results = (json.results ?? [])
-      .filter((r) => r.collectionId && r.collectionName)
-      .map((r) => ({
-        id: String(r.collectionId),
-        name: r.collectionName,
-        artist: r.artistName,
-        artwork: art600(r.artworkUrl100),
-        year: r.releaseDate ? Number(r.releaseDate.slice(0, 4)) || null : null,
-      }));
-    return results;
-  });
+  .handler(async ({ data }) => searchItunesAlbums(data.term));
 
 export const lookupAlbum = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().min(1) }))
-  .handler(async ({ data }) => {
-    const url = `https://itunes.apple.com/lookup?id=${encodeURIComponent(data.id)}&entity=song`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Album lookup failed");
-    const json = (await res.json()) as { results?: Array<ItunesAlbum | ItunesTrack> };
-    const rows = json.results ?? [];
-    const album = rows.find((r) => (r as ItunesAlbum).collectionType === "Album" || (r as ItunesAlbum).wrapperType === "collection") as
-      | ItunesAlbum
-      | undefined;
-    const tracks = rows.filter((r) => (r as ItunesTrack).wrapperType === "track") as ItunesTrack[];
-    if (!album) throw new Error("Album not found");
-    return toRawAlbum(album, tracks);
-  });
+  .handler(async ({ data }) => lookupItunesAlbum(data.id));
