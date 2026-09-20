@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Needlecheck",
+      "hasCanvas": false,
+      "bodyTextLen": 970,
+      "bodyTextHash": "0762fbc0e03c7bd6f746e907ea360c301f2e78cdf00a568bfa5ba1b7441c5468",
+      "bodyTextPrefix": "Needlecheck Late night on the multiworld seed 48291 0/56 1/6 alb",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Needlecheck",
+      "hasCanvas": false,
+      "bodyTextLen": 925,
+      "bodyTextHash": "8457f1f17b2e910502adb7d3e0fdd489f98e9da7cfaf24fed649bb3935741a38",
+      "bodyTextPrefix": "Needlecheck seed 48291 Station Crate World Silence on the channe",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

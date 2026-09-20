@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Needlecheck",
+      "hasCanvas": false,
+      "bodyTextLen": 956,
+      "bodyTextHash": "8970847c03259d6b0ed8d14f58219df099fe04fa8262aa5bf851bf08602074de",
+      "bodyTextPrefix": "Needlecheck First play is a check seed 48291 0/56 1/6 albums Sta",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Needlecheck",
+      "hasCanvas": false,
+      "bodyTextLen": 918,
+      "bodyTextHash": "314e5b8bb810e8e918bd92aac4533705a36f2bc261c511f69a6cc37af556f91f",
+      "bodyTextPrefix": "Needlecheck seed 48291 Station Crate World Silence on the channe",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}
