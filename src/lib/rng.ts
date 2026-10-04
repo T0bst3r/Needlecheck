@@ -25,9 +25,10 @@ export function pick<T>(arr: readonly T[], rand: () => number): T {
 }
 
 export function hash32(input: string): number {
+  const bytes = new TextEncoder().encode(input);
   let h = 2166136261;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
+  for (let i = 0; i < bytes.length; i++) {
+    h ^= bytes[i]!;
     h = Math.imul(h, 16777619);
   }
   return h >>> 0;

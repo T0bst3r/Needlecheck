@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { allTracks } from "@/lib/world";
+import { exportableAlbums } from "@/lib/ap/player-yaml";
 import { useStation } from "@/lib/store";
 
 export function WorldView() {
@@ -22,6 +23,8 @@ export function WorldView() {
   const resetProgress = useStation((s) => s.resetProgress);
   const exportPack = useStation((s) => s.exportPack);
   const total = allTracks(crate).length;
+  const ready = exportableAlbums(crate);
+  const readyTracks = ready.ok ? ready.albums.reduce((sum, album) => sum + album.tracks.length, 0) : 0;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
@@ -125,14 +128,15 @@ export function WorldView() {
               {liveStatus === "connecting" ? "Connecting…" : "Connect"}
             </Button>
           )}
-          <Button variant="outline" onClick={exportPack}>
+          <Button variant="outline" onClick={exportPack} disabled={!ready.ok}>
             Download world pack
           </Button>
         </div>
         <p className="mt-4 text-sm leading-relaxed text-muted">
-          Full-length Discord voice playback needs a bot token and a voice server this preview cannot host. Needlecheck
-          is the listening client: 30-second catalog previews, first plays as location checks, album items unlocking the
-          rotation. Generate with the Manual pack, host a room, then connect here with the same slot and game name.
+          {ready.ok
+            ? `${readyTracks} ${readyTracks === 1 ? "track goes" : "tracks go"} into Needlecheck.yaml, across ${ready.albums.length} ${ready.albums.length === 1 ? "album" : "albums"}. The apworld in the zip has no albums of its own. The slot name above is the YAML name.`
+            : ready.reason}{" "}
+          The station still plays short previews. YouTube videos and files are stored for a later player, not streamed here.
         </p>
       </section>
 

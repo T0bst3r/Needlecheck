@@ -106,6 +106,7 @@ export class ArchipelagoClient {
               this.handlers.onStatus("connected");
               resolve();
             }
+            this.ingestSlot(pkt.slot_data);
             this.handlers.onConnected({
               slot: pkt.slot as number,
               checked: (pkt.checked_locations as number[]) ?? [],
@@ -156,6 +157,28 @@ export class ArchipelagoClient {
       }
     }
     this.ws = null;
+  }
+
+  private ingestSlot(data: unknown) {
+    if (!data || typeof data !== "object") return;
+    const albums = (data as { albums?: unknown }).albums;
+    if (!Array.isArray(albums)) return;
+    for (const album of albums) {
+      if (!album || typeof album !== "object") continue;
+      const row = album as { item_name?: unknown; item_id?: unknown; tracks?: unknown };
+      if (typeof row.item_name === "string" && typeof row.item_id === "number") {
+        this.itemNameToId.set(row.item_name, row.item_id);
+        this.itemIdToName.set(row.item_id, row.item_name);
+      }
+      if (!Array.isArray(row.tracks)) continue;
+      for (const track of row.tracks) {
+        if (!track || typeof track !== "object") continue;
+        const loc = track as { location_name?: unknown; location_id?: unknown };
+        if (typeof loc.location_name === "string" && typeof loc.location_id === "number") {
+          this.locationNameToId.set(loc.location_name, loc.location_id);
+        }
+      }
+    }
   }
 
   private ingestPackage(
