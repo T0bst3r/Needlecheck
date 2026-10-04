@@ -1,27 +1,27 @@
-import { FILLER_NAMES, REMOTE_ITEMS, REMOTE_PLAYERS, TRAP_NAMES, USEFUL_NAMES, albumItemName, trackLocationName } from "./flavor";
+import { nameAlbums } from "./ap/names";
+import { FILLER_NAMES, REMOTE_ITEMS, REMOTE_PLAYERS, TRAP_NAMES, USEFUL_NAMES } from "./flavor";
 import { mulberry32, pick, stableId } from "./rng";
 import type { Album, ItemClass, Placement, RawAlbum, RemoteGift, Track } from "./types";
 
 export function buildCrate(raw: RawAlbum[], starterIds: string[]): Album[] {
-  const used = new Set<number>();
-  const starters = starterIds.filter((id) => raw.some((a) => a.id === id));
+  const starters = starterIds.filter((id) => raw.some((album) => album.id === id));
   const effectiveStarters = starters.length ? starters : raw[0] ? [raw[0].id] : [];
+  const named = nameAlbums(raw);
 
-  return raw.map((album) => {
-    const itemName = albumItemName(album.name);
-    const itemId = stableId(`item:${album.id}`, 1_000_000, used);
-    const tracks: Track[] = album.tracks.map((t) => ({
-      ...t,
+  return raw.map((album, index) => {
+    const meta = named[index]!;
+    const tracks: Track[] = album.tracks.map((track, trackIndex) => ({
+      ...track,
       albumId: album.id,
       albumName: album.name,
       artwork: album.artwork,
-      locationName: trackLocationName(t.name, album.name),
-      locationId: stableId(`loc:${t.id}`, 3_000_000, used),
+      locationName: meta.tracks[trackIndex]!.locationName,
+      locationId: meta.tracks[trackIndex]!.locationId,
     }));
     return {
       ...album,
-      itemId,
-      itemName,
+      itemId: meta.itemId,
+      itemName: meta.itemName,
       starter: effectiveStarters.includes(album.id),
       tracks,
     };

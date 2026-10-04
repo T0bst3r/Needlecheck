@@ -35,11 +35,3 @@ export const REMOTE_ITEMS = [
   "Hookshot",
   "Lumafly Lantern",
 ] as const;
-
-export function albumItemName(albumName: string): string {
-  return `Album - ${albumName}`;
-}
-
-export function trackLocationName(trackName: string, albumName: string): string {
-  return `First Play - ${trackName} [${albumName}]`;
-}
