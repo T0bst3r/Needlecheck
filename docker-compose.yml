@@ -1,0 +1,13 @@
+services:
+  needlecheck:
+    image: ghcr.io/t0bst3r/needlecheck:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MEDIA_ROOT: /music
+    volumes:
+      - ./music:/music:ro

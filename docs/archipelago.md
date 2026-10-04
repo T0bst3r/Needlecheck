@@ -85,7 +85,9 @@ Do not expect the website's player-options form to edit the crate. The option is
 
 **Station:** World tab → host, port, the slot name from the YAML, game name `Needlecheck`.
 
-First plays send location checks. Received album items unlock that album in the station's rotation. The station does not play the YouTube video or the file. It plays a short preview when the catalog has one, so you can hear the room before a real player exists.
+**Bot:** `/connect` with that same host, port, and slot. It reads this seed's crate from the room, then plays file paths from its music folder. YouTube tracks stay silent unless YouTube is turned on. Another `/connect` points it at a different room without a restart. See [the Discord bot](discord-bot.md).
+
+First plays send location checks. Received album items unlock that album. The station does not play the YouTube video or the file. It plays a short preview when the catalog has one. The bot is what plays the full track.
 
 ## 4. Changing the crate
 

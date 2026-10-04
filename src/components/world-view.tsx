@@ -136,7 +136,7 @@ export function WorldView() {
           {ready.ok
             ? `${readyTracks} ${readyTracks === 1 ? "track goes" : "tracks go"} into Needlecheck.yaml, across ${ready.albums.length} ${ready.albums.length === 1 ? "album" : "albums"}. The apworld in the zip has no albums of its own. The slot name above is the YAML name.`
             : ready.reason}{" "}
-          The station still plays short previews. YouTube videos and files are stored for a later player, not streamed here.
+          The station still plays short previews. The Discord bot plays the files. YouTube stays off there until you turn it on.
         </p>
       </section>
 

@@ -1,0 +1,17 @@
+.git
+.grok
+.vercel
+artifacts
+screenshots
+node_modules
+data
+.env
+.env.*
+*.log
+dist
+build
+/public
+/src
+/server
+/migrations
+__pycache__
