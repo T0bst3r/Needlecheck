@@ -13,11 +13,8 @@ Audio does not come from Spotify. Spotify in the station is only a search index.
 
 1. Create an application in the [Discord Developer Portal](https://discord.com/developers/applications).
 2. Bot tab: add a bot and copy the token into `DISCORD_TOKEN`.
-3. OAuth2 → URL Generator. That page is two lists, not one.
-   - **Scopes.** Check `bot` and `applications.commands`. Leave the rest unchecked (`identify`, `email`, `guilds`, `rpc`, `webhook.incoming`, and the other boxes are for a user login or a Rich Presence app, not this bot).
-   - **Bot Permissions.** This second list appears under the scopes once `bot` is checked. It is not another scope. Check View Channels, Connect, Speak, Send Messages, and Embed Links.
-   - Copy the generated URL at the bottom and open it to add the bot to your server.
-4. Copy the application id from General Information into `DISCORD_CLIENT_ID`.
+3. OAuth2 → URL Generator. Scopes: `bot`, `applications.commands`. Permissions: Connect, Speak, Send Messages, Embed Links.
+4. Invite the bot. Copy the application id into `DISCORD_CLIENT_ID`.
 5. Optional: `DISCORD_GUILD_ID` registers slash commands on that server immediately. Without it, global commands can take up to an hour.
 
 Slash commands do not need the message content intent.
