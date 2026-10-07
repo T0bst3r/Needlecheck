@@ -11,3 +11,5 @@ services:
       MEDIA_ROOT: /music
     volumes:
       - ./music:/music:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

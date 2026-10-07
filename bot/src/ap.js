@@ -1,5 +1,23 @@
 import { randomUUID } from "node:crypto";
 
+function isLocalHost(host) {
+  const name = host.replace(/^\[|\]$/g, "").toLowerCase();
+  if (!name) return false;
+  if (
+    name === "localhost" ||
+    name === "host.docker.internal" ||
+    name === "gateway.docker.internal" ||
+    name.endsWith(".local") ||
+    name.endsWith(".localhost") ||
+    name.endsWith(".internal")
+  ) {
+    return true;
+  }
+  if (!name.includes(".")) return true;
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(name)) return true;
+  return name.includes(":");
+}
+
 export function toWsUrl(host, port) {
   const raw = (host ?? "").trim();
   const p = String(port ?? "").trim() || "38281";
@@ -8,9 +26,9 @@ export function toWsUrl(host, port) {
     return `${raw}:${p}`;
   }
   const h = raw.replace(/\/$/, "") || "archipelago.gg";
-  const local = h === "localhost" || h.endsWith(".local") || /^(\d+\.){3}\d+$/.test(h);
-  const scheme = local ? "ws" : "wss";
-  return `${scheme}://${h}:${p}`;
+  const scheme = isLocalHost(h) ? "ws" : "wss";
+  const named = h.includes(":") && !h.startsWith("[") ? `[${h}]` : h;
+  return `${scheme}://${named}:${p}`;
 }
 
 function flattenPrint(pkt) {
@@ -53,7 +71,13 @@ export class ArchipelagoClient {
         reject(new Error(msg));
       };
 
-      ws.addEventListener("error", () => fail("Could not reach the Archipelago server."));
+      ws.addEventListener("error", () => {
+        const local = opts.host === "localhost" || opts.host === "127.0.0.1" || opts.host === "::1";
+        const where = local
+          ? ` Could not reach ${url}. From inside Docker, ${opts.host} is the container, not the machine running Archipelago. Use host.docker.internal.`
+          : ` Could not reach ${url}.`;
+        fail(where.trim());
+      });
       ws.addEventListener("close", () => {
         this.handlers.onStatus("disconnected");
         if (!settled) fail("Connection closed.");
