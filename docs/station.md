@@ -1,6 +1,6 @@
 # Station
 
-The station is the web listening room. Use it to build a crate, try the demo seed, or connect to a generated room. It does not stream full tracks.
+The station is the web listening room. Use it to build a crate, try the demo seed, or connect to a generated room. It does not stream full tracks. The Discord bot does, from the file path on each track.
 
 Late night on the multiworld.
 
@@ -10,8 +10,8 @@ Late night on the multiworld.
 
 **Crate** — search and decide what the world contains. Spotify is used when server credentials are set. Otherwise search uses the public catalog. Opening an album lets you attach a playback source to each track:
 
-- **YouTube** — a video URL or an 11-character id. Stored, not played.
-- **File** — a path on the machine that will eventually play it, such as `miles/so what.mp3`. The file is not uploaded, and it is not checked from the browser.
+- **YouTube** — a video URL or an 11-character id. Stored. The station does not play it. The bot plays it only after YouTube is turned on.
+- **File** — a path the bot will open in its music folder, such as `miles/so what.mp3`. The file is not uploaded, and the station does not check that it exists.
 
 Add puts only the tracks that have a source into the crate as world tracks. The albums shipped with the demo can still play previews, but they are left out of the YAML until you attach a source. Star a starter for sphere 0.
 

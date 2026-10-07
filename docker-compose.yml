@@ -1,0 +1,18 @@
+services:
+  needlecheck:
+    image: ghcr.io/t0bst3r/needlecheck:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MEDIA_ROOT: /music
+    volumes:
+      - ./music:/music:ro
+    # The container uses the host network, so 127.0.0.1 is the Archipelago
+    # server on this machine, the same address the tracker uses.
+    # Docker Desktop on Mac or Windows does not share that address. Drop this
+    # line there and connect to host.docker.internal instead.
+    network_mode: host

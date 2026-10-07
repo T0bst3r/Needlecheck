@@ -20,6 +20,6 @@ The same apworld is used for every Needlecheck slot. Two players can bring diffe
 
 ## 3. Connect
 
-Use the web station's World tab. Game name `Needlecheck`, and the slot name from the YAML.
+Use the web station's World tab, or `/connect` on the Discord bot. Game name `Needlecheck`, and the slot name from the YAML.
 
-The station plays short previews and sends a location check the first time a track starts. It does not stream the YouTube video or the file. That player is not in this version.
+The station plays short previews and can send a location check the first time a track starts. It does not stream the file. The bot plays files from its music folder. YouTube audio stays off unless you enable it.
