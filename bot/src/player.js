@@ -21,7 +21,7 @@ export class VoicePlayer {
     this.onIdle = onIdle;
     this.onSkip = onSkip;
     this.log = log ?? (() => {});
-    this.player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Pause } });
+    this.player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
     this.connection = null;
     this.shuffle = true;
     this.nowPlaying = null;
@@ -56,8 +56,19 @@ export class VoicePlayer {
       adapterCreator: channel.guild.voiceAdapterCreator,
       selfDeaf: true,
     });
+    this.connection.on("stateChange", (from, to) => {
+      const extra = to.status === VoiceConnectionStatus.Disconnected ? ` ${to.reason ?? ""}`.trimEnd() : "";
+      this.log(`voice ${from.status} -> ${to.status}${extra ? ` (${extra})` : ""}`);
+    });
+    try {
+      await entersState(this.connection, VoiceConnectionStatus.Ready, 20_000);
+    } catch (err) {
+      const status = this.connection?.state?.status ?? "unknown";
+      this.leave();
+      const reason = err instanceof Error ? err.message : "The operation was aborted";
+      throw new Error(`Discord put the bot in the channel, but voice never became ready (${status}). ${reason}`);
+    }
     this.connection.subscribe(this.player);
-    await entersState(this.connection, VoiceConnectionStatus.Ready, 20_000);
     this.connection.on(VoiceConnectionStatus.Disconnected, async () => {
       try {
         await Promise.race([
@@ -171,7 +182,9 @@ export class VoicePlayer {
   }
 
   async start(track, { requested }) {
-    if (!this.connection) throw new Error("Not in a voice channel. Use /join first.");
+    if (!this.connection || this.connection.state.status !== VoiceConnectionStatus.Ready) {
+      throw new Error("Voice is not ready. Use /leave, then /join again.");
+    }
     const token = {};
     this.current = token;
     this.starting = true;

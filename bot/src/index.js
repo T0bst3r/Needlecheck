@@ -1,4 +1,5 @@
-import { Client, EmbedBuilder, Events, GatewayIntentBits } from "discord.js";
+import { Client, EmbedBuilder, Events, GatewayIntentBits, MessageFlags } from "discord.js";
+import { generateDependencyReport } from "@discordjs/voice";
 import { ArchipelagoClient } from "./ap.js";
 import { commandData, handleCommand } from "./commands.js";
 import { config } from "./config.js";
@@ -129,6 +130,7 @@ player = new VoicePlayer({
 client.once(Events.ClientReady, async (ready) => {
   console.log(`Needlecheck logged in as ${ready.user.tag}`);
   console.log(`Music folder ${config.mediaRoot}. YouTube ${runtime.youtube ? "on" : "off"}.`);
+  console.log(generateDependencyReport());
   try {
     if (config.discordGuildId) {
       const guild = await ready.guilds.fetch(config.discordGuildId);
@@ -165,7 +167,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     console.error(err);
     const msg = err instanceof Error ? err.message : "Something went wrong.";
     if (interaction.deferred || interaction.replied) await interaction.editReply(msg).catch(() => {});
-    else await interaction.reply({ content: msg, ephemeral: true }).catch(() => {});
+    else await interaction.reply({ content: msg, flags: MessageFlags.Ephemeral }).catch(() => {});
   }
 });
 

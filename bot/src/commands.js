@@ -1,4 +1,4 @@
-import { ChannelType, EmbedBuilder, SlashCommandBuilder } from "discord.js";
+import { ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from "discord.js";
 import { allTracks } from "./slot.js";
 import { playbackCounts } from "./media.js";
 
@@ -63,11 +63,11 @@ export async function handleCommand(interaction, ctx) {
   if (name === "join") {
     const channel = inVoice(interaction);
     if (!channel) {
-      await interaction.reply({ content: "Join a voice channel first.", ephemeral: true });
+      await interaction.reply({ content: "Join a voice channel first.", flags: MessageFlags.Ephemeral });
       return;
     }
     if (!runtime.crate.length) {
-      await interaction.reply({ content: "Connect to a room first. The crate comes from the seed, not from a file on the bot.", ephemeral: true });
+      await interaction.reply({ content: "Connect to a room first. The crate comes from the seed, not from a file on the bot.", flags: MessageFlags.Ephemeral });
       return;
     }
     await interaction.deferReply();
