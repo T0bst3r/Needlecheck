@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { toWsUrl } from "../src/ap.js";
+import { toWsUrl } from "../src/url.js";
 
 test("a lan host stays on ws and archipelago.gg uses wss", () => {
   assert.equal(toWsUrl("localhost", "38281"), "ws://localhost:38281");

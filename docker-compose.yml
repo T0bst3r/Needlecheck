@@ -11,5 +11,8 @@ services:
       MEDIA_ROOT: /music
     volumes:
       - ./music:/music:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # The container uses the host network, so 127.0.0.1 is the Archipelago
+    # server on this machine, the same address the tracker uses.
+    # Docker Desktop on Mac or Windows does not share that address. Drop this
+    # line there and connect to host.docker.internal instead.
+    network_mode: host

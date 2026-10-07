@@ -50,17 +50,19 @@ The same command replaces the current room. You do not edit the env or restart t
 
 `AP_HOST` and `AP_SLOT` are optional. If both are set, the process connects once at startup. `/connect` still overrides that without a restart.
 
-The slot name must match the YAML `name:`. The game name defaults to `Needlecheck`. `archipelago.gg` uses `wss`. A local or LAN host uses `ws`, including `host.docker.internal`.
+The slot name must match the YAML `name:`. The game name defaults to `Needlecheck`. `archipelago.gg` uses `wss`. A local or LAN host uses `ws`.
 
 ### Same machine, bot in Docker
 
-`127.0.0.1` and `localhost` inside the container are the container, not your Archipelago server. From Discord:
+The container shares the host's network. Use the same address as the tracker:
 
 ```text
-/connect host:host.docker.internal slot:DJ port:38281
+/connect host:127.0.0.1 slot:DJ port:38281
 ```
 
-The compose file maps that name to the host. The server also has to accept connections from outside its own loopback. If it is bound to `127.0.0.1` only, host it on all interfaces (`0.0.0.0`) and connect again. Tailscale Funnel is not required for this, and it does not listen on 38281.
+`host.docker.internal` reaches the machine through the Docker bridge, which often cannot see a server that the tracker reaches on `127.0.0.1`. Tailscale Funnel is not required for this.
+
+On Docker Desktop for Mac or Windows, host networking does not reach the machine. Remove `network_mode: host` from the compose file and use `host:host.docker.internal` instead.
 
 ## 5. Image
 
