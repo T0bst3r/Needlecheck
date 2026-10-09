@@ -6,6 +6,7 @@ import schema from "../../../apworld/needlecheck/crate.schema.json?raw";
 import gameInfo from "../../../apworld/needlecheck/docs/en_Needlecheck.md?raw";
 import setupDoc from "../../../apworld/needlecheck/docs/setup_en.md?raw";
 import type { Album } from "../types";
+import { packagedApworldManifest } from "./manifest";
 import { toPlayerYaml } from "./player-yaml";
 
 function packReadme(slot: string): string {
@@ -32,7 +33,7 @@ export function buildWorldPack(albums: Album[], slotName: string) {
     "needlecheck/__init__.py": worldPy,
     "needlecheck/crate.py": cratePy,
     "needlecheck/options.py": optionsPy,
-    "needlecheck/archipelago.json": archipelagoMeta,
+    "needlecheck/archipelago.json": packagedApworldManifest(archipelagoMeta),
     "needlecheck/crate.schema.json": schema,
     "needlecheck/docs/en_Needlecheck.md": gameInfo,
     "needlecheck/docs/setup_en.md": setupDoc,

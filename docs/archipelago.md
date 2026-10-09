@@ -66,7 +66,7 @@ You can hand-edit this. The station writes the same shape, and it will not write
 
 The zip contains:
 
-- `needlecheck.apworld` — the generic world. No albums inside it.
+- `needlecheck.apworld` — the generic world. No albums inside it. The zip stamps the container manifest (`version` and `compatible_version` 7) that Archipelago 0.7.0 requires. Replace any older copy of this file. Keeping both makes the generator load the world twice.
 - `Needlecheck.yaml` — this slot's crate.
 - `README.txt`
 
