@@ -6,7 +6,7 @@ Late night on the multiworld.
 
 ## Building a crate
 
-The page starts empty. Search uses Spotify when server credentials are set, and the public catalog otherwise. Choosing an album opens it in a dialog. Tick the songs that belong in the world. **Source** is a separate click, for a YouTube video or a file path. Leaving a song unticked keeps it on the album, so you can turn it on later without searching again. An album already in the crate can be opened the same way. The songs that were missing are added, unticked.
+The page starts empty. Search uses Spotify when server credentials are set, and the public catalog otherwise. Choosing an album opens it in a dialog with a source field on every song. A filled-in YouTube video or file path ticks that song. Songs you leave blank stay on the album, unticked, so you can turn them on later. An album already in the crate can be opened from the list. **Source** there is a separate click, and a closed song shows `youtube:` or `file:` in front of its path.
 
 - **YouTube** — a video URL or an 11-character id. The bot plays it only after YouTube is turned on.
 - **File** — a path the bot will open in its music folder, such as `miles/so what.mp3`. The file is not uploaded, and the station does not check that it exists.

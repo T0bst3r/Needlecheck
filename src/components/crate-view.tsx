@@ -252,7 +252,7 @@ export function CrateView() {
                               </p>
                               {isPlaybackSource(track.source) ? (
                                 <p className="truncate text-xs text-subtle">
-                                  {track.source.kind === "youtube" ? track.source.id : track.source.path}
+                                  {track.source.kind === "youtube" ? `youtube: ${track.source.id}` : `file: ${track.source.path}`}
                                 </p>
                               ) : on ? (
                                 <p className="text-xs text-danger">Needs a source</p>
@@ -330,12 +330,10 @@ function DraftAlbum({
   onCancel: () => void;
   onAdd: (tracks: RawTrack[]) => void;
 }) {
-  const [included, setIncluded] = useState<Record<string, boolean>>({});
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [invalid, setInvalid] = useState<Record<string, boolean>>({});
   const sources = useRef<Record<string, PlaybackSource | undefined>>({});
   const blocked = album.tracks.some((track) => invalid[track.id]);
-  const chosen = album.tracks.filter((track) => included[track.id]).length;
+  const chosen = album.tracks.filter((track) => sources.current[track.id]).length;
 
   return (
     <>
@@ -345,8 +343,8 @@ function DraftAlbum({
           <Dialog.Title className="truncate text-lg font-medium text-fg">{album.name}</Dialog.Title>
           <Dialog.Description className="truncate text-sm text-muted">{album.artist}</Dialog.Description>
           <p className="mt-1 text-xs text-subtle">
-            Tick a song to include it. Source is a separate step. Songs you leave off stay on the album, so you can turn
-            them on later.
+            A source is a YouTube video or a path such as music/so-what.mp3. Songs you leave blank stay on the album,
+            unticked, so you can turn them on later.
           </p>
         </div>
         <Dialog.Close asChild>
@@ -356,50 +354,22 @@ function DraftAlbum({
         </Dialog.Close>
       </div>
       <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto px-4">
-        {album.tracks.map((track) => {
-          const on = Boolean(included[track.id]);
-          const editing = editingId === track.id;
-          return (
-            <li key={track.id} className="py-3">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  className="size-4 shrink-0 accent-current"
-                  checked={on}
-                  aria-label={`Include ${track.name}`}
-                  onChange={(event) => {
-                    const next = event.target.checked;
-                    setIncluded((current) => ({ ...current, [track.id]: next }));
-                    if (next && !sources.current[track.id]) setEditingId(track.id);
-                  }}
-                />
-                <p className="min-w-0 flex-1 text-sm text-fg">
-                  <span className="tabular-nums text-subtle">{track.trackNumber}.</span> {track.name}
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-expanded={editing}
-                  onClick={() => setEditingId(editing ? null : track.id)}
-                >
-                  {editing ? "Hide" : "Source"}
-                </Button>
-              </div>
-              {editing ? (
-                <SourceFields
-                  name={track.name}
-                  initial={sources.current[track.id]}
-                  onChange={(source) => {
-                    sources.current[track.id] = source;
-                    setInvalid((current) => ({ ...current, [track.id]: false }));
-                  }}
-                  onInvalid={(bad) => setInvalid((current) => ({ ...current, [track.id]: bad }))}
-                />
-              ) : null}
-            </li>
-          );
-        })}
+        {album.tracks.map((track) => (
+          <li key={track.id} className="py-3">
+            <p className="text-sm text-fg">
+              <span className="tabular-nums text-subtle">{track.trackNumber}.</span> {track.name}
+            </p>
+            <SourceFields
+              name={track.name}
+              initial={undefined}
+              onChange={(source) => {
+                sources.current[track.id] = source;
+                setInvalid((current) => ({ ...current, [track.id]: false }));
+              }}
+              onInvalid={(bad) => setInvalid((current) => ({ ...current, [track.id]: bad }))}
+            />
+          </li>
+        ))}
       </ul>
       <div className="border-t border-border p-4">
         <div className="flex flex-wrap gap-2">
@@ -408,11 +378,10 @@ function DraftAlbum({
             disabled={busy || blocked}
             onClick={() => {
               onAdd(
-                album.tracks.map((track) => ({
-                  ...track,
-                  source: sources.current[track.id],
-                  included: Boolean(included[track.id]),
-                })),
+                album.tracks.map((track) => {
+                  const source = sources.current[track.id];
+                  return { ...track, source, included: Boolean(source) };
+                }),
               );
             }}
           >
