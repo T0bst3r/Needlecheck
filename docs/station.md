@@ -17,6 +17,22 @@ Unticking a song leaves its path in place. Clearing the path does not remove the
 
 The crate is stored in the browser. Albums that shipped with the old demo and never got a source are dropped.
 
+## Local music folder
+
+The hosted page never reads a disk. A typed file path still works there. On the machine that has the files, start the station with the same folder the bot mounts:
+
+```
+NEEDLECHECK_LOCAL=1 MEDIA_ROOT=./music npm run dev
+```
+
+`NEEDLECHECK_LOCAL` is the flag. Without it, `MEDIA_ROOT` does nothing, so a hosted site cannot be talked into listing its disk. With both set, the page shows that folder. File is the default source, and the file field suggests matches as you type.
+
+**Add this folder** makes an album from the audio files in the current folder, not from folders inside it. The folder name is the album name. The filename, without its extension, is the song name. The artist starts as `Local`. Open the album to rename it, rename a song, remove a song, or add one. That works for a Spotify album too. Adding the same folder again only appends files that were not already on it.
+
+Paths written into the YAML are relative to that folder, which is what the bot expects.
+
+The site package is `needlecheck-web`. The bot package is `needlecheck-bot`. Neither is published.
+
 ## Spotify
 
 Set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` for the station's server (client credentials, no user login). Search and track lists then come from Spotify. Those credentials do not play audio.

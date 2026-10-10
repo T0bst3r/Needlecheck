@@ -21,7 +21,7 @@ Slash commands do not need the message content intent.
 
 ## 2. Music folder
 
-Paths in the YAML are relative to `MEDIA_ROOT` (default `/music` in the image). They are not uploaded by the station.
+Paths in the YAML are relative to `MEDIA_ROOT` (default `/music` in the image). They are not uploaded by the station. To pick those files from the page, run the station with `NEEDLECHECK_LOCAL=1` and `MEDIA_ROOT` set to this same folder. See [the station](station.md).
 
 ```text
 Needlecheck.yaml                         music folder
