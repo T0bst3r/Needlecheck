@@ -1,4 +1,4 @@
-import type { Album } from "../types.ts";
+import type { Album, PlaybackSource } from "../types.ts";
 import { ITEM_BASE, LOCATION_BASE, idClash } from "./names.ts";
 import { isPlaybackSource } from "./source.ts";
 
@@ -6,16 +6,28 @@ export type ExportReady =
   | { ok: false; reason: string }
   | { ok: true; albums: Album[]; promotedStarter: boolean };
 
-/** Albums that can actually be played. Tracks without a source stay out of the world. */
+/** A track the player turned on. An unset flag follows whether a source was already attached. */
+export function trackIncluded(track: { included?: boolean; source?: PlaybackSource }): boolean {
+  if (track.included === false) return false;
+  if (track.included === true) return true;
+  return isPlaybackSource(track.source);
+}
+
+/** Included, and it has a YouTube video or a file path. */
+export function trackInWorld(track: { included?: boolean; source?: PlaybackSource }): boolean {
+  return trackIncluded(track) && isPlaybackSource(track.source);
+}
+
+/** Albums that can actually be played. Tracks left off, or without a source, stay out of the world. */
 export function exportableAlbums(crate: Album[]): ExportReady {
   const albums = crate
-    .map((album) => ({ ...album, tracks: album.tracks.filter((track) => isPlaybackSource(track.source)) }))
+    .map((album) => ({ ...album, tracks: album.tracks.filter((track) => trackInWorld(track)) }))
     .filter((album) => album.tracks.length > 0);
   if (!albums.length) {
     return {
       ok: false,
       reason:
-        "Nothing to export yet. Search an album, then attach a YouTube video or a file path to at least one track. Previews in the station are not a playback source.",
+        "Nothing to export yet. Include a song and give it a YouTube video or a file path.",
     };
   }
   let promotedStarter = false;

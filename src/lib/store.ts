@@ -2,18 +2,17 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { audioEngine } from "./audio-engine";
 import { isPlaybackSource } from "./ap/source";
-import { exportableAlbums } from "./ap/player-yaml";
+import { exportableAlbums, trackInWorld } from "./ap/player-yaml";
 import { ArchipelagoClient } from "./ap/protocol";
 import { HELP, LOCAL_COMMANDS, parseCommand } from "./commands";
 import { DEFAULT_CRATE } from "./default-crate";
 import { BOT_NAME, GAME_NAME, REMOTE_PLAYERS } from "./flavor";
 import { newSeed } from "./rng";
-import type { Album, ChatMessage, ItemClass, LiveConfig, Placement, PlaybackSource, RawAlbum, ReceivedItem, RemoteGift, Track, ViewId } from "./types";
+import type { Album, ChatMessage, ItemClass, LiveConfig, Placement, PlaybackSource, RawAlbum, RawTrack, ReceivedItem, RemoteGift, Track, ViewId } from "./types";
 import { albumById, albumByItemId, allTracks, buildCrate, generateWorld, trackById } from "./world";
 import { uid } from "./utils";
 
 export const DEFAULT_SEED = 48291;
-export const DEFAULT_STARTER_ID = "268443092"; // Kind of Blue
 
 let liveClient: ArchipelagoClient | null = null;
 let startedFor: string | null = null;
@@ -37,6 +36,7 @@ function toRaw(album: Album): RawAlbum {
       trackNumber: t.trackNumber,
       spotifyId: t.spotifyId,
       source: t.source,
+      included: t.included,
     })),
   };
 }
@@ -114,9 +114,11 @@ type StationState = {
   stop: () => void;
   sendCommand: (text: string) => void;
   addAlbum: (raw: RawAlbum) => void;
+  mergeAlbum: (raw: RawAlbum) => boolean;
   removeAlbum: (id: string) => void;
   toggleStarter: (id: string) => void;
   setTrackSource: (albumId: string, trackId: string, source: PlaybackSource | undefined) => void;
+  setTrackIncluded: (albumId: string, trackId: string, included: boolean) => void;
   newSeed: () => void;
   resetProgress: () => void;
   connectLive: () => Promise<void>;
@@ -174,7 +176,7 @@ function applyBootstrap(seed = DEFAULT_SEED): Pick<
   | "victory"
   | "encoreAlbumId"
 > {
-  const crate = buildCrate(DEFAULT_CRATE, [DEFAULT_STARTER_ID]);
+  const crate = buildCrate([], []);
   const world = generateWorld(crate, seed);
   const starter = crate.find((a) => a.starter);
   return {
@@ -373,7 +375,7 @@ export const useStation = create<StationState>()(
         liveError: "",
         shuffle: true,
         volume: 0.85,
-        view: "station",
+        view: "crate",
         seenIntro: false,
         searchBusy: false,
 
@@ -610,76 +612,56 @@ export const useStation = create<StationState>()(
 
         addAlbum: (raw) => {
           const s = get();
-          const tracks = raw.tracks.filter((track) => isPlaybackSource(track.source));
           if (s.crate.some((a) => a.id === raw.id)) {
             push({ kind: "bot", author: BOT_NAME, text: `${raw.name} is already in the crate.` });
             return;
           }
-          if (!tracks.length) {
-            push({
-              kind: "system",
-              author: "system",
-              text: "Attach a YouTube video or a file path to at least one track before adding the album.",
-            });
-            return;
-          }
-          const album = { ...raw, tracks };
+          const album = { ...raw, tracks: raw.tracks };
           const starters = s.crate.filter((a) => a.starter).map((a) => a.id);
           const crate = buildCrate([...s.crate.map(toRaw), album], starters);
           const added = crate.find((a) => a.id === album.id)!;
-          const placements = { ...s.placements };
-          for (const t of added.tracks) {
-            placements[t.locationId] = {
-              locationId: t.locationId,
-              itemId: t.locationId + 11,
-              itemName: "Liner Notes",
-              classification: "filler",
-              destPlayer: "self",
-            };
-          }
-          const host = unlockedTracks(s).find((t) => !s.checkedLocationIds.includes(t.locationId));
-          if (host) {
-            placements[host.locationId] = {
-              locationId: host.locationId,
-              itemId: added.itemId,
-              itemName: added.itemName,
-              classification: "progression",
-              destPlayer: "self",
-            };
-            push({
-              kind: "system",
-              author: "system",
-              text: `Added ${added.name} — ${added.artist}. ${added.tracks.length} first-play locations. The album item is now sitting on an unlocked track.`,
-              art: added.artwork,
-            });
-            set({ crate, placements });
-          } else {
-            push({
-              kind: "system",
-              author: "system",
-              text: `Added ${added.name} — ${added.artist}. It will arrive as a multiworld gift after a few more checks.`,
-              art: added.artwork,
-            });
-            set({
-              crate,
-              placements,
-              remoteGift: {
-                itemId: added.itemId,
-                itemName: added.itemName,
-                albumId: added.id,
-                afterChecks: s.checkedLocationIds.length + 3,
-                granted: false,
-              },
+          const inWorld = added.tracks.filter((track) => trackInWorld(track)).length;
+          set({ crate });
+          push({
+            kind: "system",
+            author: "system",
+            text: `Added ${added.name} — ${added.artist}. ${inWorld} of ${added.tracks.length} songs are in the world.`,
+            art: added.artwork,
+          });
+        },
+
+        mergeAlbum: (raw) => {
+          const s = get();
+          const existing = s.crate.find((album) => album.id === raw.id);
+          if (!existing) return false;
+          const previous = new Map(existing.tracks.map((track) => [track.id, track]));
+          const tracks: RawTrack[] = raw.tracks.map((track) => {
+            const kept = previous.get(track.id);
+            if (!kept) return { ...track, included: false, source: undefined };
+            return { ...track, source: kept.source, included: kept.included };
+          });
+          for (const track of existing.tracks) {
+            if (tracks.some((item) => item.id === track.id)) continue;
+            tracks.push({
+              id: track.id,
+              name: track.name,
+              artist: track.artist,
+              previewUrl: track.previewUrl,
+              durationMs: track.durationMs,
+              trackNumber: track.trackNumber,
+              spotifyId: track.spotifyId,
+              source: track.source,
+              included: track.included,
             });
           }
+          const starters = s.crate.filter((album) => album.starter).map((album) => album.id);
+          const nextRaw = s.crate.map((album) => (album.id === raw.id ? { ...toRaw(album), tracks } : toRaw(album)));
+          set({ crate: buildCrate(nextRaw, starters) });
+          return true;
         },
 
         removeAlbum: (id) => {
           const s = get();
-          if (s.crate.length <= 1) {
-            push({ kind: "bot", author: BOT_NAME, text: "Keep at least one album in the crate." });
-            return;
-          }
           const gone = s.crate.find((a) => a.id === id);
           const crate = s.crate.filter((a) => a.id !== id);
           const unlockedAlbumIds = s.unlockedAlbumIds.filter((x) => x !== id);
@@ -716,6 +698,21 @@ export const useStation = create<StationState>()(
                 ? {
                     ...entry,
                     tracks: entry.tracks.map((item) => (item.id === trackId ? { ...item, source } : item)),
+                  }
+                : entry,
+            ),
+          });
+        },
+
+        setTrackIncluded: (albumId, trackId, included) => {
+          const album = get().crate.find((entry) => entry.id === albumId);
+          if (!album?.tracks.some((track) => track.id === trackId)) return;
+          set({
+            crate: get().crate.map((entry) =>
+              entry.id === albumId
+                ? {
+                    ...entry,
+                    tracks: entry.tracks.map((item) => (item.id === trackId ? { ...item, included } : item)),
                   }
                 : entry,
             ),
@@ -857,7 +854,27 @@ export const useStation = create<StationState>()(
     },
     {
       name: "needlecheck-v1",
+      version: 2,
       skipHydration: true,
+      migrate: (persisted, version) => {
+        if (version >= 2 || !persisted || typeof persisted !== "object") return persisted;
+        const state = persisted as {
+          crate?: Album[];
+          unlockedAlbumIds?: string[];
+        };
+        const demoIds = new Set(DEFAULT_CRATE.map((album) => album.id));
+        const crate = (state.crate ?? []).filter((album) => {
+          if (!demoIds.has(album.id)) return true;
+          return album.tracks.some((track) => isPlaybackSource(track.source));
+        });
+        const kept = new Set(crate.map((album) => album.id));
+        return {
+          ...state,
+          crate,
+          unlockedAlbumIds: (state.unlockedAlbumIds ?? []).filter((id) => kept.has(id)),
+          seenIntro: false,
+        };
+      },
       partialize: (s) => ({
         crate: s.crate,
         seed: s.seed,

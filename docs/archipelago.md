@@ -58,11 +58,11 @@ You can hand-edit this. The station writes the same shape, and it will not write
 
 ## 1. Build the crate
 
-1. Open the station → **Crate**.
+1. Open the station. The crate starts empty.
 2. Search. Spotify is used when the station has client credentials. Otherwise the public catalog is used.
-3. Choose an album. Attach a YouTube video or a file path to the tracks that should be locations. Leave the rest blank.
-4. Add the album. Star a starter. The demo albums already in the crate do not count until you do this — their previews are only for the listening room.
-5. **World** → **Download world pack**. The slot name on that page becomes `name:` in the YAML.
+3. Choose an album. It opens in a dialog. Attach a YouTube video or a file path to the tracks that should be locations. Leave the rest blank.
+4. Add the album. Star a starter.
+5. Download the world pack on the same page. The slot name there becomes `name:` in the YAML.
 
 The zip contains:
 
@@ -83,9 +83,7 @@ Do not expect the website's player-options form to edit the crate. The option is
 
 ## 3. Connect
 
-**Station:** World tab → host, port, the slot name from the YAML, game name `Needlecheck`.
-
-**Bot:** `/connect` with that same host, port, and slot. It reads this seed's crate from the room, then plays file paths from its music folder. YouTube tracks stay silent unless YouTube is turned on. Another `/connect` points it at a different room without a restart. See [the Discord bot](discord-bot.md).
+**Bot:** `/connect` with that host, port, and slot. It reads this seed's crate from the room, then plays file paths from its music folder. YouTube tracks stay silent unless YouTube is turned on. Another `/connect` points it at a different room without a restart. See [the Discord bot](discord-bot.md).
 
 First plays send location checks. Received album items unlock that album. The station does not play the YouTube video or the file. It plays a short preview when the catalog has one. The bot is what plays the full track.
 

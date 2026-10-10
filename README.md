@@ -10,7 +10,7 @@ The world itself is generic. The albums, the tracks, which album starts unlocked
 
 | Piece | Role |
 | --- | --- |
-| **Station** | Search a catalog, attach a source to each track you want, export the YAML, play a short preview, connect to a room. |
+| **Station** | Search a catalog, attach a source to each track you want, and download the world pack. |
 | **apworld** | One world for every slot. It reads `Needlecheck.crate` and builds items and locations from it. |
 | **Discord bot** | Plays the crate from the room. Files in a music folder first. YouTube only if you turn it on. |
 
@@ -23,10 +23,10 @@ Spotify, when credentials are set, is only a search index for the station. The b
 
 ## A seed
 
-1. In the station, open **Crate**, search, and attach a YouTube video or a file path to the tracks you want. Star a starter album.
-2. **World** → **Download world pack**.
+1. In the station, search and attach a YouTube video or a file path to the tracks you want. Star a starter album.
+2. Download the world pack from that same page. The slot name there is the YAML name.
 3. Put `needlecheck.apworld` in Archipelago's custom worlds folder and `Needlecheck.yaml` in `Players`. Generate and host.
-4. Connect the station, or `/connect` the bot with the same slot name. The bot reads the crate from the room.
+4. `/connect` the bot with that slot name. The bot reads the crate from the room.
 
 Details: [Archipelago setup](docs/archipelago.md), [the station](docs/station.md), and [the Discord bot](docs/discord-bot.md).
 

@@ -19,10 +19,9 @@ function packReadme(slot: string): string {
     "1. Copy needlecheck.apworld into Archipelago's custom_worlds folder.",
     "2. Copy Needlecheck.yaml into Players.",
     `3. The slot name is "${slot}". Change name: if you want a different one.`,
-    "4. Generate and host. Connect from the station, or /connect the Discord bot, with game name Needlecheck.",
+    "4. Generate and host. /connect the Discord bot with game name Needlecheck.",
     "",
     "File paths are relative to the bot's music folder. The bot does not play YouTube unless you turn that on.",
-    "The station still plays short previews.",
     "",
   ].join("\n");
 }
