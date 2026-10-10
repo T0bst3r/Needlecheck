@@ -19,7 +19,7 @@ The crate is stored in the browser. Albums that shipped with the old demo and ne
 
 ## Local music folder
 
-The builder lists a music folder whenever `MEDIA_ROOT` is set. That is the default in Docker: `docker compose up` starts the bot and `needlecheck-builder`, both seeing `./music`, and the page is at [http://localhost:8080](http://localhost:8080). File is the default source, and the file field suggests matches as you type.
+The builder lists a music folder whenever `MEDIA_ROOT` is set. That is the default in Docker: `docker compose up` starts the bot and `needlecheck-builder`, both mounting `MUSIC_DIR` from `.env` (default `./music`) at `/music`. The page is at [http://localhost:8080](http://localhost:8080). File is the default source, and the file field suggests matches as you type. Change `MUSIC_DIR` to point both containers at another folder. Do not change the path inside the container.
 
 `NEEDLECHECK_ONLINE=1` turns that off. The page keeps typed file paths and catalog search, and does not read the disk. Use it for a public copy. Leave it unset on your own machine.
 
