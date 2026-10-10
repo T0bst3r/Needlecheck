@@ -69,6 +69,21 @@ test("yaml keeps only sourced tracks and quotes the slot", () => {
         source: { kind: "file" as const, path: "miles/so what.mp3" },
       },
       {
+        id: "blue",
+        name: "Blue in Green",
+        artist: "Miles Davis",
+        previewUrl: null,
+        durationMs: 1000,
+        trackNumber: 3,
+        albumId: "268443092",
+        albumName: "Kind of Blue",
+        artwork: "",
+        locationId: 4,
+        locationName: "First Play - Blue in Green [Kind of Blue — Miles Davis]",
+        source: { kind: "file" as const, path: "miles/blue.mp3" },
+        included: false,
+      },
+      {
         id: "freddie",
         name: "Freddie Freeloader",
         artist: "Miles Davis",
@@ -92,4 +107,5 @@ test("yaml keeps only sourced tracks and quotes the slot", () => {
   assert.match(yaml, /kind: file/);
   assert.match(yaml, /path: "miles\/so what\.mp3"/);
   assert.doesNotMatch(yaml, /Freddie/);
+  assert.doesNotMatch(yaml, /Blue in Green/);
 });

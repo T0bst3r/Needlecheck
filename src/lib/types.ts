@@ -13,6 +13,8 @@ export type RawTrack = {
   trackNumber: number;
   spotifyId?: string;
   source?: PlaybackSource;
+  /** False leaves the track out of the world even when a source is set. */
+  included?: boolean;
 };
 
 export type RawAlbum = {

@@ -4,7 +4,7 @@ import { ChevronDown, Search, Star, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { exportableAlbums } from "@/lib/ap/player-yaml";
+import { exportableAlbums, trackIncluded, trackInWorld } from "@/lib/ap/player-yaml";
 import { isPlaybackSource, playbackSource } from "@/lib/ap/source";
 import { catalogStatus, lookupCatalog, searchCatalog } from "@/lib/catalog";
 import { useStation } from "@/lib/store";
@@ -17,9 +17,11 @@ type Kind = "youtube" | "file";
 export function CrateView() {
   const crate = useStation((s) => s.crate);
   const addAlbum = useStation((s) => s.addAlbum);
+  const mergeAlbum = useStation((s) => s.mergeAlbum);
   const removeAlbum = useStation((s) => s.removeAlbum);
   const toggleStarter = useStation((s) => s.toggleStarter);
   const setTrackSource = useStation((s) => s.setTrackSource);
+  const setTrackIncluded = useStation((s) => s.setTrackIncluded);
   const slot = useStation((s) => s.live.slot);
   const setLive = useStation((s) => s.setLive);
   const exportPack = useStation((s) => s.exportPack);
@@ -32,6 +34,7 @@ export function CrateView() {
   const [spotify, setSpotify] = useState(false);
   const [draft, setDraft] = useState<RawAlbum | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -59,11 +62,18 @@ export function CrateView() {
   }
 
   async function choose(id: string) {
+    const existing = useStation.getState().crate.some((album) => album.id === id);
     setBusy(true);
     setLoadingId(id);
     setError("");
     try {
       const album = await lookupCatalog({ data: { id } });
+      if (existing) {
+        mergeAlbum(album);
+        setOpenId(id);
+        setDraft(null);
+        return;
+      }
       setDraft(album);
     } catch {
       setError("Could not load that album's tracks.");
@@ -95,8 +105,8 @@ export function CrateView() {
       <header>
         <h2 className="font-display text-2xl font-medium tracking-tight">The crate</h2>
         <p className="mt-1 max-w-xl text-sm text-muted">
-          Search for an album, then attach a YouTube video or a file path to each track that should be a location.
-          Tracks without a source stay out of the world. Star one album to start unlocked.
+          Search for an album, then tick the songs that should be locations. A song stays out until it is ticked and has a
+          YouTube video or a file path. Star one album to start unlocked.
         </p>
         <p className="mt-2 text-xs text-subtle">
           {spotify ? "Searching Spotify." : "Spotify credentials are not set — searching the public catalog instead."}
@@ -140,10 +150,10 @@ export function CrateView() {
                   size="sm"
                   variant={inCrate ? "secondary" : "default"}
                   className="mt-2 w-full"
-                  disabled={inCrate || busy}
+                  disabled={busy}
                   onClick={() => void choose(hit.id)}
                 >
-                  {inCrate ? "In crate" : loadingId === hit.id ? "Loading…" : "Choose tracks"}
+                  {loadingId === hit.id ? "Loading…" : inCrate ? "Edit songs" : "Choose tracks"}
                 </Button>
               </li>
             );
@@ -171,7 +181,7 @@ export function CrateView() {
       {crate.length ? (
         <ul className="divide-y divide-border rounded-xl bg-surface shadow-[var(--shadow-border)]">
           {crate.map((album) => {
-            const sourced = album.tracks.filter((track) => isPlaybackSource(track.source)).length;
+            const sourced = album.tracks.filter((track) => trackInWorld(track)).length;
             const open = openId === album.id;
             return (
               <li key={album.id}>
@@ -219,18 +229,55 @@ export function CrateView() {
                 </div>
                 {open ? (
                   <ul className="border-t border-border px-3 pb-2">
-                    {album.tracks.map((track) => (
-                      <li key={track.id} className="border-b border-border py-3 last:border-b-0">
-                        <p className="text-sm text-fg">
-                          <span className="tabular-nums text-subtle">{track.trackNumber}.</span> {track.name}
-                        </p>
-                        <SourceFields
-                          name={track.name}
-                          initial={track.source}
-                          onChange={(source) => setTrackSource(album.id, track.id, source)}
-                        />
-                      </li>
-                    ))}
+                    {album.tracks.map((track) => {
+                      const on = trackIncluded(track);
+                      const key = `${album.id}/${track.id}`;
+                      const editing = editingId === key;
+                      return (
+                        <li key={track.id} className="border-b border-border py-3 last:border-b-0">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              className="size-4 shrink-0 accent-current"
+                              checked={on}
+                              aria-label={`Include ${track.name}`}
+                              onChange={(event) => {
+                                setTrackIncluded(album.id, track.id, event.target.checked);
+                                if (event.target.checked && !isPlaybackSource(track.source)) setEditingId(key);
+                              }}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm text-fg">
+                                <span className="tabular-nums text-subtle">{track.trackNumber}.</span> {track.name}
+                              </p>
+                              {isPlaybackSource(track.source) ? (
+                                <p className="truncate text-xs text-subtle">
+                                  {track.source.kind === "youtube" ? track.source.id : track.source.path}
+                                </p>
+                              ) : on ? (
+                                <p className="text-xs text-danger">Needs a source</p>
+                              ) : null}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-expanded={editing}
+                              onClick={() => setEditingId(editing ? null : key)}
+                            >
+                              {editing ? "Hide" : "Source"}
+                            </Button>
+                          </div>
+                          {editing ? (
+                            <SourceFields
+                              name={track.name}
+                              initial={track.source}
+                              onChange={(source) => setTrackSource(album.id, track.id, source)}
+                            />
+                          ) : null}
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : null}
               </li>
@@ -283,17 +330,12 @@ function DraftAlbum({
   onCancel: () => void;
   onAdd: (tracks: RawTrack[]) => void;
 }) {
-  const [kinds, setKinds] = useState<Record<string, Kind>>({});
-  const [texts, setTexts] = useState<Record<string, string>>({});
+  const [included, setIncluded] = useState<Record<string, boolean>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [invalid, setInvalid] = useState<Record<string, boolean>>({});
-  const [missed, setMissed] = useState(false);
   const sources = useRef<Record<string, PlaybackSource | undefined>>({});
-
-  const chosen = album.tracks.flatMap((track) => {
-    const source = sources.current[track.id] ?? playbackSource(kinds[track.id] ?? "youtube", texts[track.id] ?? "");
-    return source ? [{ ...track, source }] : [];
-  });
   const blocked = album.tracks.some((track) => invalid[track.id]);
+  const chosen = album.tracks.filter((track) => included[track.id]).length;
 
   return (
     <>
@@ -303,8 +345,8 @@ function DraftAlbum({
           <Dialog.Title className="truncate text-lg font-medium text-fg">{album.name}</Dialog.Title>
           <Dialog.Description className="truncate text-sm text-muted">{album.artist}</Dialog.Description>
           <p className="mt-1 text-xs text-subtle">
-            {chosen.length} of {album.tracks.length} tracks will be added. A source is a YouTube video or a path such
-            as music/so-what.mp3. Nothing is uploaded.
+            Tick a song to include it. Source is a separate step. Songs you leave off stay on the album, so you can turn
+            them on later.
           </p>
         </div>
         <Dialog.Close asChild>
@@ -314,27 +356,50 @@ function DraftAlbum({
         </Dialog.Close>
       </div>
       <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto px-4">
-        {album.tracks.map((track) => (
-          <li key={track.id} className="py-3">
-            <p className="text-sm text-fg">
-              <span className="tabular-nums text-subtle">{track.trackNumber}.</span> {track.name}
-            </p>
-            <SourceFields
-              name={track.name}
-              initial={undefined}
-              onChange={(source) => {
-                sources.current[track.id] = source;
-                setKinds((current) => ({ ...current, [track.id]: source?.kind ?? current[track.id] ?? "youtube" }));
-                setTexts((current) => ({
-                  ...current,
-                  [track.id]: source?.kind === "file" ? source.path : source?.kind === "youtube" ? source.id : "",
-                }));
-                setInvalid((current) => ({ ...current, [track.id]: false }));
-              }}
-              onInvalid={(bad) => setInvalid((current) => ({ ...current, [track.id]: bad }))}
-            />
-          </li>
-        ))}
+        {album.tracks.map((track) => {
+          const on = Boolean(included[track.id]);
+          const editing = editingId === track.id;
+          return (
+            <li key={track.id} className="py-3">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="size-4 shrink-0 accent-current"
+                  checked={on}
+                  aria-label={`Include ${track.name}`}
+                  onChange={(event) => {
+                    const next = event.target.checked;
+                    setIncluded((current) => ({ ...current, [track.id]: next }));
+                    if (next && !sources.current[track.id]) setEditingId(track.id);
+                  }}
+                />
+                <p className="min-w-0 flex-1 text-sm text-fg">
+                  <span className="tabular-nums text-subtle">{track.trackNumber}.</span> {track.name}
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-expanded={editing}
+                  onClick={() => setEditingId(editing ? null : track.id)}
+                >
+                  {editing ? "Hide" : "Source"}
+                </Button>
+              </div>
+              {editing ? (
+                <SourceFields
+                  name={track.name}
+                  initial={sources.current[track.id]}
+                  onChange={(source) => {
+                    sources.current[track.id] = source;
+                    setInvalid((current) => ({ ...current, [track.id]: false }));
+                  }}
+                  onInvalid={(bad) => setInvalid((current) => ({ ...current, [track.id]: bad }))}
+                />
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
       <div className="border-t border-border p-4">
         <div className="flex flex-wrap gap-2">
@@ -342,27 +407,22 @@ function DraftAlbum({
             type="button"
             disabled={busy || blocked}
             onClick={() => {
-              const tracks = album.tracks.flatMap((track) => {
-                const source = sources.current[track.id];
-                return source ? [{ ...track, source }] : [];
-              });
-              if (!tracks.length) {
-                setMissed(true);
-                return;
-              }
-              onAdd(tracks);
+              onAdd(
+                album.tracks.map((track) => ({
+                  ...track,
+                  source: sources.current[track.id],
+                  included: Boolean(included[track.id]),
+                })),
+              );
             }}
           >
-            Add {chosen.length} {chosen.length === 1 ? "track" : "tracks"}
+            Add album{chosen ? ` · ${chosen} on` : ""}
           </Button>
           <Button type="button" variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
         </div>
         {blocked ? <p className="mt-2 text-sm text-danger">One of those sources is not a YouTube video or a file path.</p> : null}
-        {missed && !chosen.length ? (
-          <p className="mt-2 text-sm text-danger">Attach a YouTube video or a file path to at least one track.</p>
-        ) : null}
       </div>
     </>
   );
