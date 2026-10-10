@@ -19,19 +19,21 @@ The crate is stored in the browser. Albums that shipped with the old demo and ne
 
 ## Local music folder
 
-The hosted page never reads a disk. A typed file path still works there. On the machine that has the files, start the station with the same folder the bot mounts:
+The builder lists a music folder whenever `MEDIA_ROOT` is set. That is the default in Docker: `docker compose up` starts the bot and `needlecheck-builder`, both seeing `./music`, and the page is at [http://localhost:8080](http://localhost:8080). File is the default source, and the file field suggests matches as you type.
+
+`NEEDLECHECK_ONLINE=1` turns that off. The page keeps typed file paths and catalog search, and does not read the disk. Use it for a public copy. Leave it unset on your own machine.
+
+Without Docker, the same thing is:
 
 ```
-NEEDLECHECK_LOCAL=1 MEDIA_ROOT=./music npm run dev
+MEDIA_ROOT=./music npm run dev
 ```
-
-`NEEDLECHECK_LOCAL` is the flag. Without it, `MEDIA_ROOT` does nothing, so a hosted site cannot be talked into listing its disk. With both set, the page shows that folder. File is the default source, and the file field suggests matches as you type.
 
 **Add this folder** makes an album from the audio files in the current folder, not from folders inside it. The folder name is the album name. The filename, without its extension, is the song name. The artist starts as `Local`. Open the album to rename it, rename a song, remove a song, or add one. That works for a Spotify album too. Adding the same folder again only appends files that were not already on it.
 
 Paths written into the YAML are relative to that folder, which is what the bot expects.
 
-The site package is `needlecheck-web`. The bot package is `needlecheck-bot`. Neither is published.
+The package and container are `needlecheck-builder`. The bot package is `needlecheck-bot`. Neither package is published. The images are `ghcr.io/t0bst3r/needlecheck` and `ghcr.io/t0bst3r/needlecheck-builder`.
 
 ## Spotify
 

@@ -1,5 +1,5 @@
 {
-  "name": "needlecheck-web",
+  "name": "needlecheck-builder",
   "private": true,
   "sideEffects": false,
   "type": "module",

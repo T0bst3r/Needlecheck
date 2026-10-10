@@ -16,3 +16,23 @@ services:
     # Docker Desktop on Mac or Windows does not share that address. Drop this
     # line there and connect to host.docker.internal instead.
     network_mode: host
+
+  builder:
+    image: ghcr.io/t0bst3r/needlecheck-builder:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.builder
+    container_name: needlecheck-builder
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # A music folder makes this the local builder. NEEDLECHECK_ONLINE=1
+      # hides the folder and leaves typed file paths, for a hosted copy.
+      MEDIA_ROOT: /music
+      HOST: 0.0.0.0
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./music:/music:ro

@@ -27,12 +27,9 @@ export function relativeMediaPath(input: string): { ok: true; parts: string[] } 
 }
 
 export function libraryStatus(env: NodeJS.ProcessEnv = process.env): LibraryStatus {
-  const flag = (env.NEEDLECHECK_LOCAL ?? "").trim().toLowerCase();
-  const on = flag === "1" || flag === "true" || flag === "yes";
-  if (!on) return { local: false };
-  if (!(env.MEDIA_ROOT ?? "").trim()) {
-    return { local: false, reason: "NEEDLECHECK_LOCAL is set, but MEDIA_ROOT is empty." };
-  }
+  const online = (env.NEEDLECHECK_ONLINE ?? "").trim().toLowerCase();
+  if (online === "1" || online === "true" || online === "yes") return { local: false };
+  if (!(env.MEDIA_ROOT ?? "").trim()) return { local: false };
   return { local: true };
 }
 

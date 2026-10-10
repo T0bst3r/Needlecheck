@@ -21,7 +21,7 @@ Slash commands do not need the message content intent.
 
 ## 2. Music folder
 
-Paths in the YAML are relative to `MEDIA_ROOT` (default `/music` in the image). They are not uploaded by the station. To pick those files from the page, run the station with `NEEDLECHECK_LOCAL=1` and `MEDIA_ROOT` set to this same folder. See [the station](station.md).
+Paths in the YAML are relative to `MEDIA_ROOT` (default `/music` in the image). They are not uploaded by the station. `docker compose up` starts the builder beside the bot, on port 8080, reading the same `./music` folder. See [the station](station.md).
 
 ```text
 Needlecheck.yaml                         music folder
@@ -66,7 +66,7 @@ On Docker Desktop for Mac or Windows, host networking does not reach the machine
 
 ## 5. Image
 
-Merges to `main` publish `ghcr.io/t0bst3r/needlecheck`.
+Merges to `main` publish `ghcr.io/t0bst3r/needlecheck` (the bot) and `ghcr.io/t0bst3r/needlecheck-builder` (the page).
 
 The repository is private, so the package is private until you change that.
 
@@ -85,6 +85,8 @@ Copy `.env.example` to `.env`. Put audio files in `./music` so the relative path
 docker compose up -d
 ```
 
+The bot container is `needlecheck`. The page is `needlecheck-builder` at `http://localhost:8080`. Both mount `./music`. The builder lists that folder unless `NEEDLECHECK_ONLINE=1`.
+
 The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bot is the container's main process and stops on `SIGTERM`.
 
 | Variable | Required | Purpose |
@@ -98,6 +100,7 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 | `AP_PASSWORD` | no | Room password |
 | `AP_GAME` | no | Default `Needlecheck` |
 | `MEDIA_ROOT` | no | Default `/music` |
+| `NEEDLECHECK_ONLINE` | no | `1` hides the music folder on the builder. The bot ignores it. |
 | `YOUTUBE` | no | `1` enables video-id tracks. Default off |
 | `YTDLP_COOKIES` | no | Only used when YouTube is on |
 | `ANNOUNCE_CHANNEL_ID` | no | Unlocks, checks, and room text |

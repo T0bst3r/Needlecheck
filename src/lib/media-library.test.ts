@@ -18,11 +18,11 @@ test("song titles drop the audio extension", () => {
   assert.equal(songTitle("notes.txt"), "notes.txt");
 });
 
-test("the library stays off unless the local flag and a root are set", () => {
+test("the library is on when a music folder is set, unless this is the hosted site", () => {
   assert.deepEqual(libraryStatus({}), { local: false });
-  assert.equal(libraryStatus({ MEDIA_ROOT: "/music" }).local, false);
-  assert.equal(libraryStatus({ NEEDLECHECK_LOCAL: "1" }).local, false);
-  assert.equal(libraryStatus({ NEEDLECHECK_LOCAL: "1", MEDIA_ROOT: "/music" }).local, true);
+  assert.equal(libraryStatus({ MEDIA_ROOT: "/music" }).local, true);
+  assert.equal(libraryStatus({ NEEDLECHECK_ONLINE: "1", MEDIA_ROOT: "/music" }).local, false);
+  assert.equal(libraryStatus({ NEEDLECHECK_ONLINE: "1" }).local, false);
 });
 
 test("a folder becomes an album and a symlink cannot leave it", async () => {
