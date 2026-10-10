@@ -252,7 +252,7 @@ export function CrateView() {
                               </p>
                               {isPlaybackSource(track.source) ? (
                                 <p className="truncate text-xs text-subtle">
-                                  {track.source.kind === "youtube" ? `youtube: ${track.source.id}` : `file: ${track.source.path}`}
+                                  {track.source.kind === "youtube" ? track.source.id : track.source.path}
                                 </p>
                               ) : on ? (
                                 <p className="text-xs text-danger">Needs a source</p>
