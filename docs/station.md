@@ -29,7 +29,7 @@ Without Docker, the same thing is:
 MEDIA_ROOT=./music npm run dev
 ```
 
-**Add this folder** makes an album from the audio files in the current folder, not from folders inside it. The folder name is the album name. The filename, without its extension, is the song name. The artist starts as `Local`. Open the album to rename it, rename a song, remove a song, or add one. That works for a Spotify album too. Adding the same folder again only appends files that were not already on it.
+**Add this folder** makes an album from the audio files in the current folder, not from folders inside it. **Add every album inside** walks those folders and adds each one that has songs. A path like `Artist/Album/01 - So What.mp3` becomes artist Artist, album Album, and song So What. A folder sitting directly in the music folder stays artist `Local`. The filename, without a leading track number or its extension, is the song name. Open the album to rename it, rename a song, remove a song, or add one. That works for a Spotify album too. Adding the same folder again only appends files that were not already on it. The list scrolls on its own once the folder is long.
 
 Paths written into the YAML are relative to that folder, which is what the bot expects.
 

@@ -12,7 +12,7 @@ export function LibraryBrowser({
 }: {
   onPickFile?: (path: string) => void;
 }) {
-  const upsertLocalAlbum = useStation((s) => s.upsertLocalAlbum);
+  const upsertLocalAlbums = useStation((s) => s.upsertLocalAlbums);
   const [path, setPath] = useState("");
   const [dirs, setDirs] = useState<Entry[]>([]);
   const [files, setFiles] = useState<Entry[]>([]);
@@ -53,18 +53,21 @@ export function LibraryBrowser({
   const shownFiles = needle ? files.filter((entry) => entry.name.toLowerCase().includes(needle)) : files;
   const crumbs = path ? path.split("/") : [];
 
-  async function addFolder() {
+  async function addFolder(recursive: boolean) {
     setBusy(true);
     setNotice("");
     setError("");
     try {
-      const result = await folderAsAlbum({ data: { path } });
+      const result = await folderAsAlbum({ data: { path, recursive } });
       if (!result.ok) {
         setError(result.reason);
         return;
       }
-      const added = upsertLocalAlbum(result.album);
-      setNotice(added === "added" ? `Added ${result.album.name}.` : added === "merged" ? `Added the new songs in ${result.album.name}.` : `${result.album.name} is already in the crate.`);
+      const counts = upsertLocalAlbums(result.albums);
+      const names = result.albums.length === 1 ? result.albums[0]!.name : `${counts.added + counts.merged + counts.same} albums`;
+      const verb = counts.added && !counts.merged && !counts.same ? "Added" : counts.added || counts.merged ? "Updated" : "Already had";
+      const tail = result.truncated ? " Stopped before every folder was added." : "";
+      setNotice(`${verb} ${names}.${tail}`);
     } catch {
       setError("Could not add that folder.");
     } finally {
@@ -78,13 +81,18 @@ export function LibraryBrowser({
         <div>
           <h3 className="text-lg font-medium text-fg">Music folder</h3>
           <p className="mt-1 max-w-xl text-sm text-muted">
-            Add a folder as an album. The folder name is the album, and each filename is a song. Rename either after.
-            File is the default source.
+            A folder laid out as artist/album uses those names, and a leading track number is dropped from the song.
+            Add every album inside walks into the folders under this one.
           </p>
         </div>
-        <Button type="button" onClick={() => void addFolder()} disabled={busy}>
-          Add this folder
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={() => void addFolder(false)} disabled={busy}>
+            Add this folder
+          </Button>
+          <Button type="button" variant="secondary" onClick={() => void addFolder(true)} disabled={busy}>
+            Add every album inside
+          </Button>
+        </div>
       </div>
       <nav className="mt-3 flex flex-wrap items-center gap-1 text-sm" aria-label="Music folder">
         <button type="button" className="text-muted hover:text-fg" onClick={() => { setPath(""); setFilter(""); }}>
@@ -111,7 +119,7 @@ export function LibraryBrowser({
       />
       {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
       {notice ? <p className="mt-2 text-sm text-fg">{notice}</p> : null}
-      <ul className="mt-3 divide-y divide-border">
+      <ul className="mt-3 max-h-72 divide-y divide-border overflow-y-auto overscroll-contain">
         {shownDirs.map((dir) => (
           <li key={dir.path}>
             <button

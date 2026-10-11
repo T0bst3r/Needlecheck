@@ -44,10 +44,10 @@ export const searchMedia = createServerFn({ method: "POST" })
   });
 
 export const folderAsAlbum = createServerFn({ method: "POST" })
-  .validator(z.object({ path: z.string().max(400) }))
+  .validator(z.object({ path: z.string().max(400), recursive: z.boolean().optional() }))
   .handler(async ({ data }) => {
     const opened = await rootOrReason();
     if (!opened.ok) return opened;
-    const { folderAlbum } = await import("./media-library");
-    return folderAlbum(opened.root, data.path);
+    const { folderAlbums } = await import("./media-library");
+    return folderAlbums(opened.root, data.path, data.recursive === true);
   });

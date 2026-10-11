@@ -2,7 +2,7 @@ import { lstat, readdir, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import type { RawAlbum, RawTrack } from "./types.ts";
 
-const AUDIO = new Set([".mp3", ".flac", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".aiff", ".aif"]);
+const AUDIO = new Set([".mp3", ".flac", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".aiff", ".aif", ".wma"]);
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
 export type MediaEntry = { name: string; path: string };
@@ -37,6 +37,21 @@ export function songTitle(filename: string): string {
   const ext = path.extname(filename);
   const base = ext && AUDIO.has(ext.toLowerCase()) ? filename.slice(0, -ext.length) : filename;
   return base.trim();
+}
+
+/** Drop a leading track number. `01 - So What` becomes `So What`. */
+export function trackTitle(filename: string): string {
+  const base = songTitle(filename);
+  const stripped = base.replace(/^\d{1,3}[\s._-]+/, "").trim();
+  return stripped || base;
+}
+
+/** `Artist/Album` uses both names. A folder directly under the music root stays artist `Local`. */
+export function albumIdentity(relDir: string, rootName: string): { artist: string; name: string } {
+  const parts = relDir.split("/").filter(Boolean);
+  if (parts.length >= 2) return { artist: parts[parts.length - 2]!, name: parts[parts.length - 1]! };
+  if (parts.length === 1) return { artist: "Local", name: parts[0]! };
+  return { artist: "Local", name: rootName || "Music" };
 }
 
 function inside(root: string, target: string): boolean {
@@ -126,39 +141,79 @@ export async function searchLibrary(root: string, term: string, limit = 12): Pro
   return found;
 }
 
-export async function folderAlbum(root: string, rel: string): Promise<{ ok: true; album: RawAlbum } | { ok: false; reason: string }> {
-  const listed = await listLibrary(root, rel);
-  if (!listed.ok) return listed;
-  if (!listed.files.length) {
-    return { ok: false, reason: "That folder has no audio files. Open a folder of songs, or add one of the folders inside it." };
+function albumFromFiles(rootName: string, relDir: string, files: MediaEntry[]): RawAlbum | null {
+  const { artist, name } = albumIdentity(relDir, rootName);
+  const tracks: RawTrack[] = [];
+  for (const file of files) {
+    const title = trackTitle(file.name);
+    if (!title) continue;
+    tracks.push({
+      id: `file:${file.path}`,
+      name: title,
+      artist,
+      previewUrl: null,
+      durationMs: 0,
+      trackNumber: tracks.length + 1,
+      source: { kind: "file", path: file.path },
+      included: true,
+    });
   }
-  const folderName = listed.path ? listed.path.split("/").at(-1)! : path.basename(root) || "Music";
-  const tracks: RawTrack[] = listed.files.flatMap((file, index) => {
-    const name = songTitle(file.name);
-    if (!name) return [];
-    return [
-      {
-        id: `file:${file.path}`,
-        name,
-        artist: "Local",
-        previewUrl: null,
-        durationMs: 0,
-        trackNumber: index + 1,
-        source: { kind: "file" as const, path: file.path },
-        included: true,
-      },
-    ];
-  });
-  if (!tracks.length) return { ok: false, reason: "That folder has no audio files." };
-  return {
-    ok: true,
-    album: {
-      id: `folder:${listed.path || "."}`,
-      name: folderName,
-      artist: "Local",
-      artwork: "",
-      year: null,
-      tracks,
-    },
-  };
+  if (!tracks.length) return null;
+  return { id: `folder:${relDir || "."}`, name, artist, artwork: "", year: null, tracks };
+}
+
+async function albumFromDir(root: string, rootName: string, relDir: string): Promise<RawAlbum | null> {
+  const listed = await listLibrary(root, relDir);
+  if (!listed.ok) return null;
+  return albumFromFiles(rootName, relDir, listed.files);
+}
+
+export async function folderAlbum(root: string, rel: string): Promise<{ ok: true; album: RawAlbum } | { ok: false; reason: string }> {
+  const found = await folderAlbums(root, rel, false);
+  if (!found.ok) return found;
+  const album = found.albums[0];
+  if (!album) return { ok: false, reason: "That folder has no audio files. Open a folder of songs, or add the albums inside it." };
+  return { ok: true, album };
+}
+
+const MAX_ALBUMS = 400;
+
+export async function folderAlbums(
+  root: string,
+  rel: string,
+  recursive: boolean,
+): Promise<{ ok: true; albums: RawAlbum[]; truncated: boolean } | { ok: false; reason: string }> {
+  const start = await listLibrary(root, rel);
+  if (!start.ok) return start;
+  const origin = start;
+  const dirs: string[] = [];
+  let truncated = false;
+  async function walk(listedPath: string, depth: number): Promise<void> {
+    if (dirs.length >= MAX_ALBUMS || depth > 6) {
+      truncated = true;
+      return;
+    }
+    const listed = listedPath === origin.path ? origin : await listLibrary(root, listedPath);
+    if (!listed.ok) return;
+    if (listed.files.length) dirs.push(listed.path);
+    if (!recursive) return;
+    for (const dir of listed.dirs) {
+      if (dirs.length >= MAX_ALBUMS) {
+        truncated = true;
+        return;
+      }
+      await walk(dir.path, depth + 1);
+    }
+  }
+  await walk(origin.path, 0);
+  const rootName = path.basename(root) || "Music";
+  const filled: RawAlbum[] = [];
+  for (const dir of dirs) {
+    const album = dir === origin.path ? albumFromFiles(rootName, dir, origin.files) : await albumFromDir(root, rootName, dir);
+    if (album) filled.push(album);
+  }
+  if (!filled.length) {
+    return { ok: false, reason: recursive ? "No audio files under that folder." : "That folder has no audio files. Open a folder of songs, or add the albums inside it." };
+  }
+  return { ok: true, albums: filled, truncated };
 }

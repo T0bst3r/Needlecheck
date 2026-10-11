@@ -124,6 +124,7 @@ type StationState = {
   removeTrack: (albumId: string, trackId: string) => void;
   addTrack: (albumId: string, track: RawTrack) => void;
   upsertLocalAlbum: (raw: RawAlbum) => "added" | "merged" | "same";
+  upsertLocalAlbums: (raws: RawAlbum[]) => { added: number; merged: number; same: number };
   newSeed: () => void;
   resetProgress: () => void;
   connectLive: () => Promise<void>;
@@ -808,21 +809,38 @@ export const useStation = create<StationState>()(
         },
 
         upsertLocalAlbum: (raw) => {
+          const result = get().upsertLocalAlbums([raw]);
+          if (result.added) return "added";
+          if (result.merged) return "merged";
+          return "same";
+        },
+
+        upsertLocalAlbums: (raws) => {
+          const counts = { added: 0, merged: 0, same: 0 };
+          if (!raws.length) return counts;
           const s = get();
-          if (!s.crate.some((album) => album.id === raw.id)) {
-            get().addAlbum(raw);
-            return "added";
+          const next = s.crate.map(toRaw);
+          for (const raw of raws) {
+            const index = next.findIndex((album) => album.id === raw.id);
+            if (index < 0) {
+              next.push(raw);
+              counts.added += 1;
+              continue;
+            }
+            const known = new Set(next[index]!.tracks.map((track) => track.id));
+            const extras = raw.tracks.filter((track) => !known.has(track.id));
+            if (!extras.length) {
+              counts.same += 1;
+              continue;
+            }
+            next[index] = { ...next[index]!, tracks: [...next[index]!.tracks, ...extras] };
+            counts.merged += 1;
           }
-          const existing = s.crate.find((album) => album.id === raw.id)!;
-          const known = new Set(existing.tracks.map((track) => track.id));
-          const extras = raw.tracks.filter((track) => !known.has(track.id));
-          if (!extras.length) return "same";
-          const starters = s.crate.filter((album) => album.starter).map((album) => album.id);
-          const next = s.crate.map(toRaw).map((album) =>
-            album.id === raw.id ? { ...album, tracks: [...album.tracks, ...extras] } : album,
-          );
-          set({ crate: buildCrate(next, starters) });
-          return "merged";
+          if (counts.added || counts.merged) {
+            const starters = s.crate.filter((album) => album.starter).map((album) => album.id);
+            set({ crate: buildCrate(next, starters) });
+          }
+          return counts;
         },
 
         newSeed: () => {
