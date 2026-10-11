@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { folderAsAlbum, listMedia } from "@/lib/media";
 import { selectionAlbum } from "@/lib/media-names";
 import { useStation } from "@/lib/store";
+import type { RawAlbum } from "@/lib/types";
 import { uid } from "@/lib/utils";
 
 type Entry = { name: string; path: string };
@@ -62,17 +63,56 @@ export function LibraryBrowser({
     setPicked(new Set());
   }
 
-  function addSelected() {
-    const chosen = files.filter((file) => picked.has(file.path));
-    const album = selectionAlbum(path, chosen, uid("album"));
-    if (!album) {
-      setError("Select at least one song.");
+  function togglePick(itemPath: string, on: boolean) {
+    setPicked((current) => {
+      const next = new Set(current);
+      if (on) next.add(itemPath);
+      else next.delete(itemPath);
+      return next;
+    });
+  }
+
+  async function addSelected() {
+    const chosenFiles = files.filter((file) => picked.has(file.path));
+    const chosenDirs = dirs.filter((dir) => picked.has(dir.path));
+    if (!chosenFiles.length && !chosenDirs.length) {
+      setError("Select a song or a folder.");
       return;
     }
-    upsertLocalAlbums([album]);
-    setNotice(`Added ${album.name} with ${album.tracks.length} ${album.tracks.length === 1 ? "song" : "songs"}.`);
+    setBusy(true);
+    setNotice("");
     setError("");
-    setPicked(new Set());
+    try {
+      const albums: RawAlbum[] = [];
+      const fromFiles = selectionAlbum(path, chosenFiles, uid("album"));
+      if (fromFiles) albums.push(fromFiles);
+      let truncated = false;
+      const skipped: string[] = [];
+      for (const dir of chosenDirs) {
+        const result = await folderAsAlbum({ data: { path: dir.path, recursive: true } });
+        if (!result.ok) {
+          skipped.push(dir.name);
+          continue;
+        }
+        albums.push(...result.albums);
+        if (result.truncated) truncated = true;
+      }
+      if (!albums.length) {
+        setError(skipped.length ? `Nothing to add from ${skipped.join(", ")}.` : "Select a song or a folder.");
+        return;
+      }
+      const counts = upsertLocalAlbums(albums);
+      const names = albums.length === 1 ? albums[0]!.name : `${counts.added + counts.merged + counts.same} albums`;
+      const verb = counts.added && !counts.merged && !counts.same ? "Added" : counts.added || counts.merged ? "Updated" : "Already had";
+      const skip = skipped.length ? ` Skipped ${skipped.join(", ")}.` : "";
+      const tail = truncated ? " Stopped before every folder was added." : "";
+      setNotice(`${verb} ${names}.${skip}${tail}`);
+      setPicked(new Set());
+    } catch {
+      setError("Could not add that selection.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function addFolder(recursive: boolean) {
@@ -104,7 +144,7 @@ export function LibraryBrowser({
           <h3 className="text-lg font-medium text-fg">Music folder</h3>
           <p className="mt-1 max-w-xl text-sm text-muted">
             A folder laid out as artist/album uses those names, and a leading track number is dropped from the song.
-            Add every album inside walks into the folders under this one. Tick a few songs to add only those.
+            Add every album inside walks into the folders under this one. Tick songs for one album, or tick folders to add only those albums.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -114,7 +154,7 @@ export function LibraryBrowser({
           <Button type="button" variant="secondary" onClick={() => void addFolder(true)} disabled={busy}>
             Add every album inside
           </Button>
-          <Button type="button" variant="secondary" onClick={addSelected} disabled={busy || picked.size === 0}>
+          <Button type="button" variant="secondary" onClick={() => void addSelected()} disabled={busy || picked.size === 0}>
             Add selected{picked.size ? ` (${picked.size})` : ""}
           </Button>
         </div>
@@ -146,10 +186,17 @@ export function LibraryBrowser({
       {notice ? <p className="mt-2 text-sm text-fg">{notice}</p> : null}
       <ul className="mt-3 max-h-72 divide-y divide-border overflow-y-auto overscroll-contain">
         {shownDirs.map((dir) => (
-          <li key={dir.path}>
+          <li key={dir.path} className="flex items-center gap-3 py-2">
+            <input
+              type="checkbox"
+              className="size-4 shrink-0 accent-current"
+              checked={picked.has(dir.path)}
+              aria-label={`Select ${dir.name}`}
+              onChange={(event) => togglePick(dir.path, event.target.checked)}
+            />
             <button
               type="button"
-              className="flex w-full items-center gap-2 py-2 text-left text-sm text-fg hover:text-accent"
+              className="flex min-w-0 flex-1 items-center gap-2 text-left text-sm text-fg hover:text-accent"
               onClick={() => openDir(dir.path)}
             >
               <Folder className="size-4 shrink-0 text-subtle" />
@@ -164,14 +211,7 @@ export function LibraryBrowser({
               className="size-4 shrink-0 accent-current"
               checked={picked.has(file.path)}
               aria-label={`Select ${file.name}`}
-              onChange={(event) => {
-                setPicked((current) => {
-                  const next = new Set(current);
-                  if (event.target.checked) next.add(file.path);
-                  else next.delete(file.path);
-                  return next;
-                });
-              }}
+              onChange={(event) => togglePick(file.path, event.target.checked)}
             />
             <p className="min-w-0 flex-1 truncate text-sm text-muted">{file.name}</p>
             {onPickFile ? (
