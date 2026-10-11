@@ -17,6 +17,24 @@ Unticking a song leaves its path in place. Clearing the path does not remove the
 
 The crate is stored in the browser. Albums that shipped with the old demo and never got a source are dropped.
 
+## Local music folder
+
+The builder lists a music folder whenever `MEDIA_ROOT` is set. That is the default in Docker: `docker compose up` starts the bot and `needlecheck-builder`, both mounting `MUSIC_DIR` from `.env` (default `./music`) at `/music`. The page is at [http://localhost:8080](http://localhost:8080). File is the default source, and the file field suggests matches as you type. Change `MUSIC_DIR` to point both containers at another folder. Do not change the path inside the container.
+
+`NEEDLECHECK_ONLINE=1` turns that off. The page keeps typed file paths and catalog search, and does not read the disk. Use it for a public copy. Leave it unset on your own machine.
+
+Without Docker, the same thing is:
+
+```
+MEDIA_ROOT=./music npm run dev
+```
+
+**New album** adds an empty album you can rename and fill with **Add song**. Tick the songs and folders you want, or use **All** to tick everything in the list. **Add** follows that selection: ticked songs become one album, and each ticked folder is added with the albums inside it. A path like `Artist/Album/01 - So What.mp3` becomes artist Artist, album Album, and song So What. A folder sitting directly in the music folder stays artist `Local`. The filename, without a leading track number or its extension, is the song name. Open the album to rename it, rename a song, remove a song, or add one. That works for a Spotify album too. Adding the same folder again only appends files that were not already on it. The list scrolls on its own once the folder is long.
+
+Paths written into the YAML are relative to that folder, which is what the bot expects.
+
+The package and container are `needlecheck-builder`. The bot package is `needlecheck-bot`. Neither package is published. The images are `ghcr.io/t0bst3r/needlecheck` and `ghcr.io/t0bst3r/needlecheck-builder`.
+
 ## Spotify
 
 Set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` for the station's server (client credentials, no user login). Search and track lists then come from Spotify. Those credentials do not play audio.

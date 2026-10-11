@@ -23,7 +23,7 @@ Spotify, when credentials are set, is only a search index for the station. The b
 
 ## A seed
 
-1. In the station, search and attach a YouTube video or a file path to the tracks you want. Star a starter album.
+1. In the station, search and attach a YouTube video or a file path to the tracks you want. Star a starter album. `docker compose up` also starts the builder at `http://localhost:8080`, using the host folder in `MUSIC_DIR` (default `./music`). `NEEDLECHECK_ONLINE=1` hides that folder.
 2. Download the world pack from that same page. The slot name there is the YAML name.
 3. Put `needlecheck.apworld` in Archipelago's custom worlds folder and `Needlecheck.yaml` in `Players`. Generate and host.
 4. `/connect` the bot with that slot name. The bot reads the crate from the room.

@@ -119,6 +119,12 @@ type StationState = {
   toggleStarter: (id: string) => void;
   setTrackSource: (albumId: string, trackId: string, source: PlaybackSource | undefined) => void;
   setTrackIncluded: (albumId: string, trackId: string, included: boolean) => void;
+  renameAlbum: (id: string, name: string, artist: string) => void;
+  renameTrack: (albumId: string, trackId: string, name: string) => void;
+  removeTrack: (albumId: string, trackId: string) => void;
+  addTrack: (albumId: string, track: RawTrack) => void;
+  upsertLocalAlbum: (raw: RawAlbum) => "added" | "merged" | "same";
+  upsertLocalAlbums: (raws: RawAlbum[]) => { added: number; merged: number; same: number };
   newSeed: () => void;
   resetProgress: () => void;
   connectLive: () => Promise<void>;
@@ -717,6 +723,124 @@ export const useStation = create<StationState>()(
                 : entry,
             ),
           });
+        },
+
+        renameAlbum: (id, name, artist) => {
+          const nextName = name.trim();
+          const nextArtist = artist.trim();
+          if (!nextName || !nextArtist) return;
+          const s = get();
+          const album = s.crate.find((entry) => entry.id === id);
+          if (!album || (album.name === nextName && album.artist === nextArtist)) return;
+          const starters = s.crate.filter((entry) => entry.starter).map((entry) => entry.id);
+          const next = s.crate.map(toRaw).map((entry) =>
+            entry.id === id
+              ? {
+                  ...entry,
+                  name: nextName,
+                  artist: nextArtist,
+                  tracks: entry.tracks.map((track) => ({
+                    ...track,
+                    artist: track.artist === album.artist ? nextArtist : track.artist,
+                  })),
+                }
+              : entry,
+          );
+          set({ crate: buildCrate(next, starters) });
+        },
+
+        renameTrack: (albumId, trackId, name) => {
+          const nextName = name.trim();
+          if (!nextName) return;
+          const s = get();
+          const album = s.crate.find((entry) => entry.id === albumId);
+          const track = album?.tracks.find((entry) => entry.id === trackId);
+          if (!album || !track || track.name === nextName) return;
+          const starters = s.crate.filter((entry) => entry.starter).map((entry) => entry.id);
+          const next = s.crate.map(toRaw).map((entry) =>
+            entry.id === albumId
+              ? { ...entry, tracks: entry.tracks.map((item) => (item.id === trackId ? { ...item, name: nextName } : item)) }
+              : entry,
+          );
+          set({ crate: buildCrate(next, starters) });
+        },
+
+        removeTrack: (albumId, trackId) => {
+          const s = get();
+          const album = s.crate.find((entry) => entry.id === albumId);
+          if (!album?.tracks.some((track) => track.id === trackId)) return;
+          const stopNow = s.nowPlayingId === trackId;
+          if (stopNow) audioEngine.stop();
+          const starters = s.crate.filter((entry) => entry.starter).map((entry) => entry.id);
+          const next = s.crate.map(toRaw).map((entry) =>
+            entry.id === albumId
+              ? {
+                  ...entry,
+                  tracks: entry.tracks
+                    .filter((track) => track.id !== trackId)
+                    .map((track, index) => ({ ...track, trackNumber: index + 1 })),
+                }
+              : entry,
+          );
+          set({
+            crate: buildCrate(next, starters),
+            nowPlayingId: stopNow ? null : s.nowPlayingId,
+            isPlaying: stopNow ? false : s.isPlaying,
+          });
+        },
+
+        addTrack: (albumId, track) => {
+          const s = get();
+          const album = s.crate.find((entry) => entry.id === albumId);
+          if (!album || album.tracks.some((item) => item.id === track.id)) return;
+          const starters = s.crate.filter((entry) => entry.starter).map((entry) => entry.id);
+          const next = s.crate.map(toRaw).map((entry) =>
+            entry.id === albumId
+              ? {
+                  ...entry,
+                  tracks: [
+                    ...entry.tracks,
+                    { ...track, artist: track.artist || entry.artist, trackNumber: entry.tracks.length + 1 },
+                  ],
+                }
+              : entry,
+          );
+          set({ crate: buildCrate(next, starters) });
+        },
+
+        upsertLocalAlbum: (raw) => {
+          const result = get().upsertLocalAlbums([raw]);
+          if (result.added) return "added";
+          if (result.merged) return "merged";
+          return "same";
+        },
+
+        upsertLocalAlbums: (raws) => {
+          const counts = { added: 0, merged: 0, same: 0 };
+          if (!raws.length) return counts;
+          const s = get();
+          const next = s.crate.map(toRaw);
+          for (const raw of raws) {
+            const index = next.findIndex((album) => album.id === raw.id);
+            if (index < 0) {
+              next.push(raw);
+              counts.added += 1;
+              continue;
+            }
+            const known = new Set(next[index]!.tracks.map((track) => track.id));
+            const extras = raw.tracks.filter((track) => !known.has(track.id));
+            if (!extras.length) {
+              counts.same += 1;
+              continue;
+            }
+            next[index] = { ...next[index]!, tracks: [...next[index]!.tracks, ...extras] };
+            counts.merged += 1;
+          }
+          if (counts.added || counts.merged) {
+            const starters = s.crate.filter((album) => album.starter).map((album) => album.id);
+            set({ crate: buildCrate(next, starters) });
+          }
+          return counts;
         },
 
         newSeed: () => {
