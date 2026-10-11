@@ -127,6 +127,33 @@ async function albumFromDir(root: string, rootName: string, relDir: string): Pro
   return albumFromFiles(rootName, relDir, listed.files);
 }
 
+function pickAlbumId(relDir: string, files: MediaEntry[]): string {
+  let hash = 2166136261;
+  const text = `${relDir}\n${files.map((file) => file.path).join("\n")}`;
+  for (let index = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `pick:${(hash >>> 0).toString(16)}`;
+}
+
+/** Songs ticked in one folder. The whole folder keeps its folder id. A subset gets its own id. */
+export async function albumFromPickedFiles(
+  root: string,
+  rel: string,
+  picked: string[],
+): Promise<{ ok: true; album: RawAlbum } | { ok: false; reason: string }> {
+  const listed = await listLibrary(root, rel);
+  if (!listed.ok) return listed;
+  const want = new Set(picked);
+  const files = listed.files.filter((file) => want.has(file.path));
+  if (!files.length) return { ok: false, reason: "None of those songs are in this folder." };
+  const album = albumFromFiles(path.basename(root) || "Music", listed.path, files);
+  if (!album) return { ok: false, reason: "None of those songs are in this folder." };
+  if (files.length === listed.files.length) return { ok: true, album };
+  return { ok: true, album: { ...album, id: pickAlbumId(listed.path, files) } };
+}
+
 export async function folderAlbum(root: string, rel: string): Promise<{ ok: true; album: RawAlbum } | { ok: false; reason: string }> {
   const found = await folderAlbums(root, rel, false);
   if (!found.ok) return found;

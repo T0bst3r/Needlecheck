@@ -1,13 +1,19 @@
-import path from "node:path";
 import type { RawAlbum, RawTrack } from "./types.ts";
 
 export const AUDIO = new Set([".mp3", ".flac", ".wav", ".ogg", ".m4a", ".aac", ".opus", ".aiff", ".aif", ".wma"]);
 
 export type MediaEntry = { name: string; path: string };
 
+function audioExtension(filename: string): string {
+  const slash = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+  const dot = filename.lastIndexOf(".");
+  if (dot <= slash) return "";
+  return filename.slice(dot).toLowerCase();
+}
+
 export function songTitle(filename: string): string {
-  const ext = path.extname(filename);
-  const base = ext && AUDIO.has(ext.toLowerCase()) ? filename.slice(0, -ext.length) : filename;
+  const ext = audioExtension(filename);
+  const base = ext && AUDIO.has(ext) ? filename.slice(0, -ext.length) : filename;
   return base.trim();
 }
 

@@ -228,7 +228,7 @@ export function CrateView() {
             const sourced = album.tracks.filter((track) => trackInWorld(track)).length;
             const open = openId === album.id;
             return (
-              <li key={album.id}>
+              <li key={album.id} className={open ? "bg-surface-3" : undefined}>
                 <div className="flex items-center gap-3 p-3">
                   {album.artwork ? (
                     <img
@@ -388,7 +388,7 @@ export function CrateView() {
       ) : (
         <p className="rounded-xl bg-surface px-4 py-8 text-center text-sm text-muted shadow-[var(--shadow-border)]">
           {local
-            ? "Nothing in the crate yet. Add a folder above, or search for an album."
+            ? "Nothing in the crate yet. Select songs or folders above, or search for an album."
             : "Nothing in the crate yet. Search for an album, then choose its tracks."}
         </p>
       )}

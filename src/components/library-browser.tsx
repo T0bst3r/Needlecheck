@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { folderAsAlbum, listMedia } from "@/lib/media";
-import { selectionAlbum } from "@/lib/media-names";
+import { filesAsAlbum, folderAsAlbum, listMedia } from "@/lib/media";
 import { useStation } from "@/lib/store";
 import type { RawAlbum } from "@/lib/types";
-import { uid } from "@/lib/utils";
 
 type Entry = { name: string; path: string };
 
@@ -24,6 +22,7 @@ export function LibraryBrowser({
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const allRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancel = false;
@@ -55,7 +54,17 @@ export function LibraryBrowser({
   const needle = filter.trim().toLowerCase();
   const shownDirs = needle ? dirs.filter((entry) => entry.name.toLowerCase().includes(needle)) : dirs;
   const shownFiles = needle ? files.filter((entry) => entry.name.toLowerCase().includes(needle)) : files;
+  const shown = [...shownDirs, ...shownFiles];
+  const pickedSongs = files.filter((file) => picked.has(file.path)).length;
+  const pickedFolders = dirs.filter((dir) => picked.has(dir.path)).length;
+  const selectedShown = shown.filter((entry) => picked.has(entry.path)).length;
+  const allOn = shown.length > 0 && selectedShown === shown.length;
   const crumbs = path ? path.split("/") : [];
+  const addLabel = selectionLabel(pickedSongs, pickedFolders);
+
+  useEffect(() => {
+    if (allRef.current) allRef.current.indeterminate = selectedShown > 0 && !allOn;
+  }, [selectedShown, allOn]);
 
   function openDir(next: string) {
     setPath(next);
@@ -72,6 +81,18 @@ export function LibraryBrowser({
     });
   }
 
+  function toggleAll() {
+    setPicked((current) => {
+      const next = new Set(current);
+      if (allOn) {
+        for (const entry of shown) next.delete(entry.path);
+      } else {
+        for (const entry of shown) next.add(entry.path);
+      }
+      return next;
+    });
+  }
+
   async function addSelected() {
     const chosenFiles = files.filter((file) => picked.has(file.path));
     const chosenDirs = dirs.filter((dir) => picked.has(dir.path));
@@ -84,10 +105,13 @@ export function LibraryBrowser({
     setError("");
     try {
       const albums: RawAlbum[] = [];
-      const fromFiles = selectionAlbum(path, chosenFiles, uid("album"));
-      if (fromFiles) albums.push(fromFiles);
       let truncated = false;
       const skipped: string[] = [];
+      if (chosenFiles.length) {
+        const result = await filesAsAlbum({ data: { path, files: chosenFiles.map((file) => file.path) } });
+        if (!result.ok) skipped.push("the selected songs");
+        else albums.push(result.album);
+      }
       for (const dir of chosenDirs) {
         const result = await folderAsAlbum({ data: { path: dir.path, recursive: true } });
         if (!result.ok) {
@@ -115,28 +139,6 @@ export function LibraryBrowser({
     }
   }
 
-  async function addFolder(recursive: boolean) {
-    setBusy(true);
-    setNotice("");
-    setError("");
-    try {
-      const result = await folderAsAlbum({ data: { path, recursive } });
-      if (!result.ok) {
-        setError(result.reason);
-        return;
-      }
-      const counts = upsertLocalAlbums(result.albums);
-      const names = result.albums.length === 1 ? result.albums[0]!.name : `${counts.added + counts.merged + counts.same} albums`;
-      const verb = counts.added && !counts.merged && !counts.same ? "Added" : counts.added || counts.merged ? "Updated" : "Already had";
-      const tail = result.truncated ? " Stopped before every folder was added." : "";
-      setNotice(`${verb} ${names}.${tail}`);
-    } catch {
-      setError("Could not add that folder.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <section className="rounded-xl bg-surface p-4 shadow-[var(--shadow-border)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -144,20 +146,12 @@ export function LibraryBrowser({
           <h3 className="text-lg font-medium text-fg">Music folder</h3>
           <p className="mt-1 max-w-xl text-sm text-muted">
             A folder laid out as artist/album uses those names, and a leading track number is dropped from the song.
-            Add every album inside walks into the folders under this one. Tick songs for one album, or tick folders to add only those albums.
+            Tick songs and folders, then add that selection. Songs in this folder become one album. Each folder is added with the albums inside it.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" onClick={() => void addFolder(false)} disabled={busy}>
-            Add this folder
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => void addFolder(true)} disabled={busy}>
-            Add every album inside
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => void addSelected()} disabled={busy || picked.size === 0}>
-            Add selected{picked.size ? ` (${picked.size})` : ""}
-          </Button>
-        </div>
+        <Button type="button" onClick={() => void addSelected()} disabled={busy || pickedSongs + pickedFolders === 0}>
+          {addLabel}
+        </Button>
       </div>
       <nav className="mt-3 flex flex-wrap items-center gap-1 text-sm" aria-label="Music folder">
         <button type="button" className="text-muted hover:text-fg" onClick={() => openDir("")}>
@@ -185,6 +179,19 @@ export function LibraryBrowser({
       {error ? <p className="mt-2 text-sm text-danger">{error}</p> : null}
       {notice ? <p className="mt-2 text-sm text-fg">{notice}</p> : null}
       <ul className="mt-3 max-h-72 divide-y divide-border overflow-y-auto overscroll-contain">
+        {shown.length ? (
+          <li className="sticky top-0 z-10 flex items-center gap-3 bg-surface py-2">
+            <input
+              ref={allRef}
+              type="checkbox"
+              className="size-4 shrink-0 accent-current"
+              checked={allOn}
+              aria-label="Select every entry"
+              onChange={toggleAll}
+            />
+            <span className="text-sm text-fg">All</span>
+          </li>
+        ) : null}
         {shownDirs.map((dir) => (
           <li key={dir.path} className="flex items-center gap-3 py-2">
             <input
@@ -230,4 +237,12 @@ export function LibraryBrowser({
       ) : null}
     </section>
   );
+}
+
+function selectionLabel(songs: number, folders: number): string {
+  if (!songs && !folders) return "Add selected";
+  const parts: string[] = [];
+  if (songs) parts.push(`${songs} ${songs === 1 ? "song" : "songs"}`);
+  if (folders) parts.push(`${folders} ${folders === 1 ? "folder" : "folders"}`);
+  return `Add ${parts.join(" and ")}`;
 }

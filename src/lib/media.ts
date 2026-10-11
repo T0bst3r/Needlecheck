@@ -43,6 +43,15 @@ export const searchMedia = createServerFn({ method: "POST" })
     return { files: await searchLibrary(opened.root, data.term) };
   });
 
+export const filesAsAlbum = createServerFn({ method: "POST" })
+  .validator(z.object({ path: z.string().max(400), files: z.array(z.string().min(1).max(400)).max(2000) }))
+  .handler(async ({ data }) => {
+    const opened = await rootOrReason();
+    if (!opened.ok) return opened;
+    const { albumFromPickedFiles } = await import("./media-library");
+    return albumFromPickedFiles(opened.root, data.path, data.files);
+  });
+
 export const folderAsAlbum = createServerFn({ method: "POST" })
   .validator(z.object({ path: z.string().max(400), recursive: z.boolean().optional() }))
   .handler(async ({ data }) => {
