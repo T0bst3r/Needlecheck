@@ -3,7 +3,9 @@ import { ChevronRight, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { folderAsAlbum, listMedia } from "@/lib/media";
+import { selectionAlbum } from "@/lib/media-names";
 import { useStation } from "@/lib/store";
+import { uid } from "@/lib/utils";
 
 type Entry = { name: string; path: string };
 
@@ -20,6 +22,7 @@ export function LibraryBrowser({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancel = false;
@@ -53,6 +56,25 @@ export function LibraryBrowser({
   const shownFiles = needle ? files.filter((entry) => entry.name.toLowerCase().includes(needle)) : files;
   const crumbs = path ? path.split("/") : [];
 
+  function openDir(next: string) {
+    setPath(next);
+    setFilter("");
+    setPicked(new Set());
+  }
+
+  function addSelected() {
+    const chosen = files.filter((file) => picked.has(file.path));
+    const album = selectionAlbum(path, chosen, uid("album"));
+    if (!album) {
+      setError("Select at least one song.");
+      return;
+    }
+    upsertLocalAlbums([album]);
+    setNotice(`Added ${album.name} with ${album.tracks.length} ${album.tracks.length === 1 ? "song" : "songs"}.`);
+    setError("");
+    setPicked(new Set());
+  }
+
   async function addFolder(recursive: boolean) {
     setBusy(true);
     setNotice("");
@@ -82,7 +104,7 @@ export function LibraryBrowser({
           <h3 className="text-lg font-medium text-fg">Music folder</h3>
           <p className="mt-1 max-w-xl text-sm text-muted">
             A folder laid out as artist/album uses those names, and a leading track number is dropped from the song.
-            Add every album inside walks into the folders under this one.
+            Add every album inside walks into the folders under this one. Tick a few songs to add only those.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -92,10 +114,13 @@ export function LibraryBrowser({
           <Button type="button" variant="secondary" onClick={() => void addFolder(true)} disabled={busy}>
             Add every album inside
           </Button>
+          <Button type="button" variant="secondary" onClick={addSelected} disabled={busy || picked.size === 0}>
+            Add selected{picked.size ? ` (${picked.size})` : ""}
+          </Button>
         </div>
       </div>
       <nav className="mt-3 flex flex-wrap items-center gap-1 text-sm" aria-label="Music folder">
-        <button type="button" className="text-muted hover:text-fg" onClick={() => { setPath(""); setFilter(""); }}>
+        <button type="button" className="text-muted hover:text-fg" onClick={() => openDir("")}>
           music
         </button>
         {crumbs.map((crumb, index) => {
@@ -103,7 +128,7 @@ export function LibraryBrowser({
           return (
             <span key={next} className="flex items-center gap-1">
               <ChevronRight className="size-3 text-subtle" />
-              <button type="button" className="text-muted hover:text-fg" onClick={() => { setPath(next); setFilter(""); }}>
+              <button type="button" className="text-muted hover:text-fg" onClick={() => openDir(next)}>
                 {crumb}
               </button>
             </span>
@@ -125,7 +150,7 @@ export function LibraryBrowser({
             <button
               type="button"
               className="flex w-full items-center gap-2 py-2 text-left text-sm text-fg hover:text-accent"
-              onClick={() => { setPath(dir.path); setFilter(""); }}
+              onClick={() => openDir(dir.path)}
             >
               <Folder className="size-4 shrink-0 text-subtle" />
               <span className="truncate">{dir.name}</span>
@@ -134,6 +159,20 @@ export function LibraryBrowser({
         ))}
         {shownFiles.map((file) => (
           <li key={file.path} className="flex items-center gap-3 py-2">
+            <input
+              type="checkbox"
+              className="size-4 shrink-0 accent-current"
+              checked={picked.has(file.path)}
+              aria-label={`Select ${file.name}`}
+              onChange={(event) => {
+                setPicked((current) => {
+                  const next = new Set(current);
+                  if (event.target.checked) next.add(file.path);
+                  else next.delete(file.path);
+                  return next;
+                });
+              }}
+            />
             <p className="min-w-0 flex-1 truncate text-sm text-muted">{file.name}</p>
             {onPickFile ? (
               <Button type="button" size="sm" variant="secondary" onClick={() => onPickFile(file.path)}>

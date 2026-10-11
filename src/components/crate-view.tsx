@@ -106,6 +106,12 @@ export function CrateView() {
     setOpenId(draft.id);
   }
 
+  function addEmpty() {
+    const id = uid("album");
+    addAlbum({ id, name: "New album", artist: "Local", artwork: "", year: null, tracks: [] });
+    setOpenId(id);
+  }
+
   function download() {
     if (!ready.ok) return;
     const note = ready.promotedStarter
@@ -147,7 +153,7 @@ export function CrateView() {
         />
       ) : null}
 
-      <form onSubmit={search} className="flex gap-2">
+      <form onSubmit={search} className="flex flex-wrap gap-2">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-subtle" />
           <Input
@@ -160,6 +166,9 @@ export function CrateView() {
         </div>
         <Button type="submit" disabled={busy}>
           Search
+        </Button>
+        <Button type="button" variant="secondary" onClick={addEmpty}>
+          New album
         </Button>
       </form>
       {error ? <p className="text-sm text-danger">{error}</p> : null}

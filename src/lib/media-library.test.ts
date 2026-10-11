@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { albumIdentity, folderAlbum, folderAlbums, libraryStatus, listLibrary, relativeMediaPath, songTitle, trackTitle } from "./media-library.ts";
+import { albumIdentity, folderAlbum, folderAlbums, libraryStatus, listLibrary, relativeMediaPath, selectionAlbum, songTitle, trackTitle } from "./media-library.ts";
 
 test("relative paths stay inside the music folder", () => {
   assert.deepEqual(relativeMediaPath(""), { ok: true, parts: [] });
@@ -88,4 +88,10 @@ test("artist/album/song names each album, including wma, and a recursive add kee
     ["Kind of Blue", "Sketches of Spain"],
   );
   assert.equal(many.albums.every((album) => album.artist === "Miles Davis"), true);
+
+  const picked = selectionAlbum("Miles Davis/Kind of Blue", [listed.files[0]!], "album-picked");
+  assert.equal(picked?.id, "album-picked");
+  assert.equal(picked?.name, "Kind of Blue");
+  assert.equal(picked?.tracks.length, 1);
+  assert.equal(picked?.tracks[0]!.name, "So What");
 });
