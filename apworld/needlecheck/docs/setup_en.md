@@ -8,11 +8,11 @@ Do this in Needlecheck, not on the Archipelago options page.
 2. Search (Spotify, if the server has credentials, otherwise the public catalog).
 3. Choose an album. Attach a YouTube video or a file path to each track you want in the seed. Tracks without a source are left out.
 4. Star the album that should start unlocked.
-5. Download the world pack on the same page. The slot name there is written into the YAML.
+5. Download Needlecheck.yaml on the same page. The slot name there is written into the file. The apworld is not in that download.
 
 ## 2. Generate
 
-1. Place `needlecheck.apworld` in Archipelago's `custom_worlds` folder.
+1. Place `needlecheck.apworld` in Archipelago's `custom_worlds` folder. Download a new copy from the Needlecheck apworld release only when that release changes.
 2. Put `Needlecheck.yaml` in `Players`.
 3. Generate and host as usual.
 

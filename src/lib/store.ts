@@ -961,14 +961,14 @@ export const useStation = create<StationState>()(
               crate: get().crate.map((album) => (album.id === id ? { ...album, starter: true } : album)),
             });
           }
-          void import("./ap/export").then(({ downloadWorldPack }) => {
-            downloadWorldPack(ready.albums, s.live.slot);
+          void import("./ap/export").then(({ downloadPlayerYaml }) => {
+            downloadPlayerYaml(ready.albums, s.live.slot);
             push({
               kind: "system",
               author: "system",
               text: ready.promotedStarter
-                ? `Downloaded needlecheck-world.zip. ${ready.albums[0]!.name} starts unlocked, because no starred album had a source.`
-                : "Downloaded needlecheck-world.zip — generic apworld plus Needlecheck.yaml.",
+                ? `Downloaded Needlecheck.yaml. ${ready.albums[0]!.name} starts unlocked, because no starred album had a source.`
+                : "Downloaded Needlecheck.yaml.",
             });
           });
         },

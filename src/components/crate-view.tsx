@@ -11,6 +11,7 @@ import { catalogStatus, lookupCatalog, searchCatalog } from "@/lib/catalog";
 import { mediaStatus, searchMedia } from "@/lib/media";
 import { useStation } from "@/lib/store";
 import type { Album, PlaybackSource, RawAlbum, RawTrack } from "@/lib/types";
+import { APWORLD_RELEASE_URL } from "@/lib/ap/release";
 import { cn, uid } from "@/lib/utils";
 
 type Hit = { id: string; name: string; artist: string; artwork: string; year: number | null; source?: string };
@@ -115,8 +116,8 @@ export function CrateView() {
   function download() {
     if (!ready.ok) return;
     const note = ready.promotedStarter
-      ? `Downloaded needlecheck-world.zip. ${ready.albums[0]!.name} starts unlocked, because no starred album had a source.`
-      : "Downloaded needlecheck-world.zip.";
+      ? `Downloaded Needlecheck.yaml. ${ready.albums[0]!.name} starts unlocked, because no starred album had a source.`
+      : "Downloaded Needlecheck.yaml.";
     exportPack();
     setNotice(note);
   }
@@ -394,10 +395,14 @@ export function CrateView() {
       )}
 
       <section className="rounded-xl bg-surface p-5 shadow-[var(--shadow-border)]">
-        <h3 className="text-lg font-medium text-fg">Download world pack</h3>
+        <h3 className="text-lg font-medium text-fg">Download YAML</h3>
         <p className="mt-1 text-sm text-muted">
-          The zip is a generic apworld plus Needlecheck.yaml. The slot name is <span className="font-mono">name:</span> in
-          that file.
+          This writes Needlecheck.yaml only. The slot name is <span className="font-mono">name:</span> in that file.
+          Install{" "}
+          <a className="underline" href={APWORLD_RELEASE_URL} target="_blank" rel="noreferrer">
+            needlecheck.apworld
+          </a>{" "}
+          once, and replace it only when that release changes.
         </p>
         <label className="mt-4 block max-w-sm text-xs text-subtle">
           Slot name
@@ -405,7 +410,7 @@ export function CrateView() {
         </label>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button type="button" onClick={download} disabled={!ready.ok}>
-            Download world pack
+            Download YAML
           </Button>
           <p className="text-sm text-muted">
             {ready.ok

@@ -62,17 +62,13 @@ You can hand-edit this. The station writes the same shape, and it will not write
 2. Search. Spotify is used when the station has client credentials. Otherwise the public catalog is used.
 3. Choose an album. It opens in a dialog. Attach a YouTube video or a file path to the tracks that should be locations. Leave the rest blank.
 4. Add the album. Star a starter.
-5. Download the world pack on the same page. The slot name there becomes `name:` in the YAML.
+5. Download the YAML on the same page. The slot name there becomes `name:` in the file.
 
-The zip contains:
-
-- `needlecheck.apworld` — the generic world. No albums inside it. The zip stamps the container manifest (`version` and `compatible_version` 7) that Archipelago 0.7.0 requires. Replace any older copy of this file. Keeping both makes the generator load the world twice.
-- `Needlecheck.yaml` — this slot's crate.
-- `README.txt`
+`needlecheck.apworld` is not part of that download. Get it from the [apworld release](https://github.com/T0bst3r/Needlecheck/releases/tag/apworld). It is the generic world, with no albums inside it. The release stamps the container manifest (`version` and `compatible_version` 7) that Archipelago 0.7.0 requires. Replace an older copy only when the release changes. Keeping both makes the generator load the world twice.
 
 ## 2. Install and generate
 
-1. Copy `needlecheck.apworld` into Archipelago's `custom_worlds` folder (or `worlds`, depending on the install).
+1. Copy `needlecheck.apworld` from the release into Archipelago's `custom_worlds` folder (or `worlds`, depending on the install). Do this once.
 2. Restart the generator so Needlecheck appears in the game list.
 3. Copy `Needlecheck.yaml` into `Players`.
 4. Generate and host.
@@ -89,4 +85,4 @@ First plays send location checks. Received album items unlock that album. The st
 
 ## 4. Changing the crate
 
-Edit the crate in the station, download a new YAML, and generate again. You do not replace the apworld unless the world code itself changed. A seed already generated keeps the old crate.
+Edit the crate in the station, download a new YAML, and generate again. You do not replace the apworld unless its release changed. A seed already generated keeps the old crate.
