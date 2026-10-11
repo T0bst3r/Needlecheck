@@ -22,7 +22,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Run bot tests
         run: node --test bot/test/*.js
@@ -71,7 +71,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Run library tests
         run: node --experimental-strip-types --test src/lib/media-library.test.ts
