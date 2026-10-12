@@ -12,7 +12,7 @@ test("the packaged manifest is a version 7 apworld container", () => {
 
   const packed = JSON.parse(packagedApworldManifest(source)) as Record<string, unknown>;
   assert.equal(packed.game, "Needlecheck");
-  assert.equal(packed.world_version, "0.2.0");
+  assert.equal(packed.world_version, "0.2.1");
   assert.equal(packed.minimum_ap_version, "0.5.0");
   assert.deepEqual(packed.authors, ["Needlecheck"]);
   assert.equal(packed.version, 7);

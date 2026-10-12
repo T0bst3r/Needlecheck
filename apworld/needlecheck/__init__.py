@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from BaseClasses import Item, ItemClassification, Location, Region, Tutorial
 from Options import OptionError
-from worlds.AutoWorld import WebWorld, World
+from worlds.AutoWorld import WebWorld, World, data_package_checksum
 
-from .crate import FILLER_ID, FILLER_NAME
+from .crate import FILLER_ID, FILLER_NAME, CrateError, register_names
 from .options import NeedlecheckOptions
 
 GAME_NAME = "Needlecheck"
@@ -55,16 +55,38 @@ class NeedlecheckWorld(World):
                 "then download Needlecheck.yaml."
             )
         self.crate = crate
-        items = type(self).item_name_to_id
-        locations = type(self).location_name_to_id
-        items.setdefault(FILLER_NAME, FILLER_ID)
-        for album in crate:
-            _claim(items, album["item_name"], album["item_id"])
-            for track in album["tracks"]:
-                _claim(locations, track["location_name"], track["location_id"])
+        # The class maps are checksummed when the world loads. A seed's albums have to live on the
+        # player, or archipelago.gg rejects the room for a checksum mismatch.
+        try:
+            self.item_name_to_id, self.location_name_to_id = register_names(
+                type(self).item_name_to_id, type(self).location_name_to_id, crate
+            )
+        except CrateError as exc:
+            raise OptionError(str(exc)) from exc
+        self.item_id_to_name = {code: name for name, code in self.item_name_to_id.items()}
+        self.location_id_to_name = {code: name for name, code in self.location_name_to_id.items()}
         locked = [album for album in crate if not album["starter"]]
         if locked:
             self.multiworld.local_early_items[self.player][locked[0]["item_name"]] = 1
+
+    def modify_multidata(self, multidata: dict) -> None:
+        current = multidata["datapackage"][self.game]
+        items = dict(current["item_name_to_id"])
+        locations = dict(current["location_name_to_id"])
+        items.update(self.item_name_to_id)
+        locations.update(self.location_name_to_id)
+        package = {
+            "item_name_groups": {
+                name: sorted(group) for name, group in sorted(current.get("item_name_groups", {}).items())
+            },
+            "item_name_to_id": dict(sorted(items.items())),
+            "location_name_groups": {
+                name: sorted(group) for name, group in sorted(current.get("location_name_groups", {}).items())
+            },
+            "location_name_to_id": dict(sorted(locations.items())),
+        }
+        package["checksum"] = data_package_checksum(package)
+        multidata["datapackage"][self.game] = package
 
     def create_regions(self) -> None:
         menu = Region("Menu", self.player, self.multiworld)
@@ -132,12 +154,3 @@ class NeedlecheckWorld(World):
             ]
         }
 
-
-def _claim(mapping: dict[str, int], name: str, code: int) -> None:
-    previous = mapping.get(name)
-    if previous is not None and previous != code:
-        raise OptionError(f"Needlecheck already mapped {name} to {previous}, not {code}.")
-    owner = next((existing for existing, existing_id in mapping.items() if existing_id == code and existing != name), None)
-    if owner:
-        raise OptionError(f"Needlecheck id {code} is used by both {owner!r} and {name!r}.")
-    mapping[name] = code

@@ -100,6 +100,27 @@ class CrateTest(unittest.TestCase):
     def test_empty_crate_parses(self) -> None:
         self.assertEqual(crate.normalize_crate([]), [])
 
+    def test_register_names_leaves_the_static_maps_alone(self) -> None:
+        albums = crate.normalize_crate(
+            [
+                {
+                    "id": "a",
+                    "name": "Blue",
+                    "artist": "X",
+                    "starter": True,
+                    "tracks": [{"id": "1", "name": "Theme", "source": {"kind": "file", "path": "a.mp3"}}],
+                }
+            ]
+        )
+        items = {crate.FILLER_NAME: crate.FILLER_ID}
+        locations: dict[str, int] = {}
+        registered_items, registered_locations = crate.register_names(items, locations, albums)
+        self.assertEqual(items, {crate.FILLER_NAME: crate.FILLER_ID})
+        self.assertEqual(locations, {})
+        self.assertEqual(registered_items[albums[0]["item_name"]], albums[0]["item_id"])
+        track = albums[0]["tracks"][0]
+        self.assertEqual(registered_locations[track["location_name"]], track["location_id"])
+
 
 if __name__ == "__main__":
     unittest.main()
