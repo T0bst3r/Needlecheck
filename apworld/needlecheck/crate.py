@@ -136,6 +136,30 @@ def _unique(base: str, seen: Counter, suffix: str) -> str:
     return base
 
 
+def claim(mapping: dict[str, int], name: str, code: int) -> None:
+    previous = mapping.get(name)
+    if previous is not None and previous != code:
+        raise CrateError(f"Needlecheck already mapped {name} to {previous}, not {code}.")
+    owner = next((existing for existing, existing_id in mapping.items() if existing_id == code and existing != name), None)
+    if owner:
+        raise CrateError(f"Needlecheck id {code} is used by both {owner!r} and {name!r}.")
+    mapping[name] = code
+
+
+def register_names(
+    items: dict[str, int], locations: dict[str, int], albums: list[dict]
+) -> tuple[dict[str, int], dict[str, int]]:
+    """Copy the static name maps and add this seed's albums. The inputs stay unchanged."""
+    items = dict(items)
+    locations = dict(locations)
+    items.setdefault(FILLER_NAME, FILLER_ID)
+    for album in albums:
+        claim(items, album["item_name"], album["item_id"])
+        for track in album["tracks"]:
+            claim(locations, track["location_name"], track["location_id"])
+    return items, locations
+
+
 def _claim_ids(names: list[str], base: int, kind: str) -> None:
     seen: dict[int, str] = {}
     for name in names:

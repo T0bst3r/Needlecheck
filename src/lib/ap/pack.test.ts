@@ -14,7 +14,7 @@ test("the packed apworld stamps the container manifest and keeps the world files
   assert.equal(manifest.game, "Needlecheck");
   assert.equal(manifest.version, 7);
   assert.equal(manifest.compatible_version, 7);
-  assert.equal(manifest.world_version, "0.2.0");
+  assert.equal(manifest.world_version, "0.2.1");
 
   const packed = packApworld(world);
   assert.equal(packed[0], 0x50);
