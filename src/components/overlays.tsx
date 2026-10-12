@@ -21,8 +21,8 @@ export function IntroOverlay() {
             That album begins unlocked. The others are Archipelago items.
           </li>
           <li>
-            <span className="font-medium text-fg">3. Download the world pack. </span>
-            The slot name on this page is the name in the YAML.
+            <span className="font-medium text-fg">3. Download the YAML. </span>
+            The slot name on this page is the name in that file. The apworld is installed once, from its release.
           </li>
         </ol>
         <Button className="mt-6 w-full" onClick={dismiss}>

@@ -1,6 +1,6 @@
 # Station
 
-The station is the crate builder. Search a catalog, attach a playback source, star the album that starts unlocked, and download the world pack. It does not play the crate. The Discord bot does, from the file path or YouTube id on each track.
+The station is the crate builder. Search a catalog, attach a playback source, star the album that starts unlocked, and download Needlecheck.yaml. It does not play the crate. The Discord bot does, from the file path or YouTube id on each track.
 
 Late night on the multiworld.
 
@@ -13,7 +13,7 @@ The page starts empty. Search uses Spotify when server credentials are set, and 
 
 Unticking a song leaves its path in place. Clearing the path does not remove the tick. A song is in the world only when it is ticked and has a source.
 
-**Download world pack** writes `needlecheck-world.zip`: a generic `needlecheck.apworld` plus `Needlecheck.yaml`. The slot name on the page becomes `name:` in the YAML. The button stays off until at least one track has a source.
+**Download YAML** writes `Needlecheck.yaml` and nothing else. The slot name on the page becomes `name:` in that file. The button stays off until at least one track has a source. `needlecheck.apworld` is not in the download. Install it once from the [apworld release](https://github.com/T0bst3r/Needlecheck/releases/tag/apworld), and replace it only when that release changes.
 
 The crate is stored in the browser. Albums that shipped with the old demo and never got a source are dropped.
 
