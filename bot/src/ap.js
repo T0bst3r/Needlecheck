@@ -11,13 +11,15 @@ function flattenPrint(pkt) {
 }
 
 export class ArchipelagoClient {
-  constructor(handlers) {
+  constructor(handlers, openSocket = (url) => new WebSocket(url)) {
     this.handlers = handlers;
+    this.openSocket = openSocket;
     this.ws = null;
     this.reconnectTimer = null;
     this.opts = null;
     this.shouldReconnect = false;
     this.endpoint = "";
+    this.uuid = randomUUID();
   }
 
   get connected() {
@@ -34,26 +36,30 @@ export class ArchipelagoClient {
 
     await new Promise((resolve, reject) => {
       let settled = false;
-      const ws = new WebSocket(url);
+      const ws = this.openSocket(url);
       this.ws = ws;
 
       const fail = (msg) => {
-        if (settled) return;
+        if (settled || this.ws !== ws) return;
         settled = true;
         this.handlers.onStatus("error", msg);
         reject(new Error(msg));
       };
 
       ws.on("error", (err) => {
+        if (this.ws !== ws) return;
         const code = err && err.code ? ` (${err.code})` : "";
         fail(`Could not reach ${url}. ${err?.message || "connection failed"}${code}`);
       });
       ws.on("close", () => {
+        if (this.ws !== ws) return;
+        this.ws = null;
         this.handlers.onStatus("disconnected");
         if (!settled) fail(`Connection to ${url} closed before the room answered.`);
         else this.scheduleReconnect();
       });
       ws.on("message", (data) => {
+        if (this.ws !== ws) return;
         let packets = [];
         try {
           packets = JSON.parse(String(data));
@@ -80,7 +86,7 @@ export class ArchipelagoClient {
           password: opts.password || "",
           game: opts.game || "Needlecheck",
           name: opts.slot,
-          uuid: randomUUID(),
+          uuid: this.uuid,
           version: { major: 0, minor: 6, build: 2, class: "Version" },
           items_handling: 0b111,
           tags: ["AP", "Needlecheck"],
@@ -127,23 +133,32 @@ export class ArchipelagoClient {
       this.shouldReconnect = false;
       this.endpoint = "";
     }
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-    if (this.ws) {
-      try {
-        this.ws.close();
-      } catch {
-        /* ignore */
-      }
-    }
+    this.clearReconnect();
+    this.dropSocket();
+  }
+
+  clearReconnect() {
+    if (!this.reconnectTimer) return;
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+  }
+
+  dropSocket() {
+    const ws = this.ws;
     this.ws = null;
+    if (!ws) return;
+    ws.removeAllListeners();
+    try {
+      ws.close();
+    } catch {
+      /* ignore */
+    }
   }
 
   scheduleReconnect() {
-    if (!this.shouldReconnect || !this.opts) return;
+    if (!this.shouldReconnect || !this.opts || this.reconnectTimer) return;
     this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
       this.connect(this.opts).catch((err) => {
         this.handlers.onStatus("error", err.message);
         this.scheduleReconnect();
