@@ -10,9 +10,10 @@ import {
 import { fileResource, youtubeResource } from "./audio.js";
 import { allTracks } from "./slot.js";
 import { planPlayback, resolveMedia } from "./media.js";
+import { chooseTrack } from "./queue.js";
 
 export class VoicePlayer {
-  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onIdle, onSkip, log }) {
+  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onIdle, onSkip, log, uncheckedPercent }) {
     this.getCrate = getCrate;
     this.isUnlocked = isUnlocked;
     this.isPlayed = isPlayed;
@@ -24,6 +25,7 @@ export class VoicePlayer {
     this.player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
     this.connection = null;
     this.shuffle = true;
+    this.uncheckedPercent = uncheckedPercent ?? 80;
     this.nowPlaying = null;
     this.advance = true;
     this.starting = false;
@@ -132,18 +134,14 @@ export class VoicePlayer {
   }
 
   pick(avoid) {
-    const unlocked = this.unlockedTracks().filter((track) => !avoid.has(track.id));
-    if (!unlocked.length) return null;
-    const fresh = unlocked.filter((track) => !this.isPlayed(track.id));
-    const pool = fresh.length ? fresh : unlocked;
-    if (!this.shuffle) {
-      for (const album of this.getCrate()) {
-        if (!this.isUnlocked(album.id)) continue;
-        const hit = album.tracks.find((track) => pool.some((candidate) => candidate.id === track.id));
-        if (hit) return hit;
-      }
-    }
-    return pool[Math.floor(Math.random() * pool.length)];
+    return chooseTrack({
+      albums: this.getCrate(),
+      isUnlocked: (albumId) => this.isUnlocked(albumId),
+      isPlayed: (trackId) => this.isPlayed(trackId),
+      shuffle: this.shuffle,
+      avoid,
+      uncheckedPercent: this.uncheckedPercent,
+    });
   }
 
   open(track) {

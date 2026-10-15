@@ -111,6 +111,7 @@ player = new VoicePlayer({
     cookies: config.ytdlpCookies,
   }),
   log: (msg) => console.log(msg),
+  uncheckedPercent: config.uncheckedPercent,
   onSkip(_track, message) {
     console.log(message);
   },
