@@ -8,11 +8,12 @@ import {
   joinVoiceChannel,
 } from "@discordjs/voice";
 import { fileResource, youtubeResource } from "./audio.js";
+import { probeDurationMs } from "./duration.js";
 import { allTracks } from "./slot.js";
 import { planPlayback, resolveMedia } from "./media.js";
 
 export class VoicePlayer {
-  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onIdle, onSkip, log }) {
+  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onIdle, onSkip, onDuration, log }) {
     this.getCrate = getCrate;
     this.isUnlocked = isUnlocked;
     this.isPlayed = isPlayed;
@@ -20,11 +21,14 @@ export class VoicePlayer {
     this.onTrackStart = onTrackStart;
     this.onIdle = onIdle;
     this.onSkip = onSkip;
+    this.onDuration = onDuration;
     this.log = log ?? (() => {});
     this.player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
     this.connection = null;
     this.shuffle = true;
     this.nowPlaying = null;
+    this.resource = null;
+    this.durationMs = 0;
     this.advance = true;
     this.starting = false;
     this.stopAudio = null;
@@ -32,12 +36,14 @@ export class VoicePlayer {
     this.player.on(AudioPlayerStatus.Idle, () => {
       if (!this.advance || this.starting) return;
       this.nowPlaying = null;
+      this.resource = null;
       this.playNext().catch((err) => this.log(err.message));
     });
     this.player.on("error", (err) => {
       this.log(`Player error: ${err.message}`);
       if (this.stopAudio) this.stopAudio();
       this.nowPlaying = null;
+      this.resource = null;
       if (this.advance && !this.starting) this.playNext().catch(() => {});
     });
   }
@@ -101,6 +107,9 @@ export class VoicePlayer {
     this.stopAudio = null;
     this.player.stop(true);
     this.nowPlaying = null;
+    this.resource = null;
+    this.durationMs = 0;
+    this.onStopped?.();
   }
 
   pause() {
@@ -220,6 +229,9 @@ export class VoicePlayer {
       }
       if (this.current !== token) return;
       this.nowPlaying = track;
+      this.resource = opened.resource;
+      this.durationMs = track.durationMs || 0;
+      this.readDuration(track, token);
       await this.onTrackStart?.(track);
     } finally {
       if (this.current === token) this.starting = false;
@@ -262,4 +274,37 @@ export class VoicePlayer {
     this.nowPlaying = null;
     await this.onIdle?.("Skipped everything that is unlocked. Check the music folder, or turn YouTube on.");
   }
+
+  snapshot() {
+    if (!this.nowPlaying) return { track: null, playedMs: 0, durationMs: 0, paused: false };
+    const status = this.player.state.status;
+    return {
+      track: this.nowPlaying,
+      playedMs: this.resource?.playbackDuration ?? 0,
+      durationMs: this.durationMs,
+      paused: status === AudioPlayerStatus.Paused,
+    };
+  }
+
+  readDuration(track, token) {
+    if (this.durationMs > 0) return;
+    const source = probeTarget(track, this.getOptions());
+    if (!source) return;
+    probeDurationMs(source).then((ms) => {
+      if (this.current !== token || !this.nowPlaying || this.nowPlaying.id !== track.id || ms <= 0) return;
+      this.durationMs = ms;
+      this.onDuration?.();
+    });
+  }
+}
+
+function probeTarget(track, options) {
+  const plan = planPlayback(track, { youtube: options.youtube });
+  if (!plan.ok) return null;
+  if (plan.kind === "file") {
+    const resolved = resolveMedia(options.mediaRoot, plan.path);
+    if (!resolved.ok) return null;
+    return { kind: "file", path: resolved.path };
+  }
+  return { kind: "youtube", id: plan.id };
 }

@@ -118,11 +118,14 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 | `/pause` `/resume` `/skip` `/stop` | Transport |
 | `/shuffle` | Random, or album order |
 | `/np` | Now playing, and whether it is a file or YouTube |
+| `/progress enabled:` | Post one message that follows the song, or delete it. It edits every few seconds. Off by default |
 | `/crate list` | Locked, unlocked, file count, video count |
 | `/youtube enabled:` | Optional backend, on or off |
 | `/status` `/help` | Room and what can play |
 
 Rotation prefers tracks that have not been checked. Locked albums are silent until their item arrives. Starters are unlocked as soon as the room connects.
+
+`/progress enabled:True` posts a single message in that channel and edits it every few seconds with how far the song has got. Turning it off deletes the message. The bot's own status cannot show this bar.
 
 ## 8. What this bot does not do
 

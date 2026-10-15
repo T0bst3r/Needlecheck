@@ -4,6 +4,7 @@ import { ArchipelagoClient } from "./ap.js";
 import { commandData, handleCommand } from "./commands.js";
 import { config } from "./config.js";
 import { VoicePlayer } from "./player.js";
+import { ProgressBoard } from "./progress.js";
 import { albumByItemId, parseSlotCrate, starterIds, trackByLocationId } from "./slot.js";
 
 if (!config.discordToken) {
@@ -114,7 +115,11 @@ player = new VoicePlayer({
   onSkip(_track, message) {
     console.log(message);
   },
+  onDuration() {
+    progress.ping().catch(() => {});
+  },
   async onTrackStart(track) {
+    progress.ping().catch(() => {});
     const first = !runtime.played.has(track.id);
     runtime.played.add(track.id);
     if (!first) return;
@@ -123,9 +128,16 @@ player = new VoicePlayer({
     await announce(`First play. Checked ${track.locationName}.`, track);
   },
   async onIdle(message) {
-    if (message) await announce(message);
+    if (!message) return;
+    await announce(message);
+    progress.showSilence().catch(() => {});
   },
 });
+
+const progress = new ProgressBoard({ player });
+player.onStopped = () => {
+  progress.ping().catch(() => {});
+};
 
 client.once(Events.ClientReady, async (ready) => {
   console.log(`Needlecheck logged in as ${ready.user.tag}`);
@@ -162,7 +174,7 @@ client.once(Events.ClientReady, async (ready) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
   try {
-    await handleCommand(interaction, { runtime, player, ap, client });
+    await handleCommand(interaction, { runtime, player, ap, client, progress });
   } catch (err) {
     console.error(err);
     const msg = err instanceof Error ? err.message : "Something went wrong.";
