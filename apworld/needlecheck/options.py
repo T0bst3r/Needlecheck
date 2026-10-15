@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from Options import Option, OptionError, PerGameCommonOptions, Visibility
+from Options import Option, OptionError, PerGameCommonOptions, Range, Visibility
 
 from .crate import CrateError, normalize_crate
 
@@ -54,6 +54,22 @@ class Crate(Option[list]):
         return self.get_option_name(self.value)
 
 
+class TrapPercentage(Range):
+    """Percent of Liner Notes replaced with traps. 0 leaves the pool as it is.
+
+    Locked Groove makes the next song one that was already listened to.
+    Wrong Speed plays the current song faster or slower, up to 2×.
+    Tonearm Lift pauses for 5 to 15 seconds.
+    Traps never take an album away.
+    """
+
+    display_name = "Trap Percentage"
+    range_start = 0
+    range_end = 100
+    default = 0
+
+
 @dataclass
 class NeedlecheckOptions(PerGameCommonOptions):
     crate: Crate
+    trap_percentage: TrapPercentage

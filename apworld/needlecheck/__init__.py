@@ -4,7 +4,15 @@ from BaseClasses import Item, ItemClassification, Location, Region, Tutorial
 from Options import OptionError
 from worlds.AutoWorld import WebWorld, World, data_package_checksum
 
-from .crate import FILLER_ID, FILLER_NAME, CrateError, register_names
+from .crate import (
+    FILLER_ID,
+    FILLER_NAME,
+    TRAP_IDS,
+    TRAP_NAMES,
+    CrateError,
+    register_names,
+    trap_fill,
+)
 from .options import NeedlecheckOptions
 
 GAME_NAME = "Needlecheck"
@@ -40,11 +48,16 @@ class NeedlecheckWorld(World):
     options_dataclass = NeedlecheckOptions
     options: NeedlecheckOptions
     origin_region_name = "Menu"
-    item_name_to_id = {FILLER_NAME: FILLER_ID}
+    item_name_to_id = {FILLER_NAME: FILLER_ID, **TRAP_IDS}
     location_name_to_id: dict[str, int] = {}
 
     def create_item(self, name: str) -> Item:
-        classification = ItemClassification.filler if name == FILLER_NAME else ItemClassification.progression
+        if name in TRAP_NAMES:
+            classification = ItemClassification.trap
+        elif name == FILLER_NAME:
+            classification = ItemClassification.filler
+        else:
+            classification = ItemClassification.progression
         return NeedlecheckItem(name, classification, self.item_name_to_id[name], self.player)
 
     def generate_early(self) -> None:
@@ -115,7 +128,11 @@ class NeedlecheckWorld(World):
             else:
                 pool.append(item)
         unfilled = len(self.multiworld.get_unfilled_locations(self.player))
-        while len(pool) < unfilled:
+        filler_count = max(0, unfilled - len(pool))
+        trap_count = trap_fill(filler_count, int(self.options.trap_percentage.value))
+        for _ in range(trap_count):
+            pool.append(self.create_item(self.random.choice(TRAP_NAMES)))
+        for _ in range(filler_count - trap_count):
             pool.append(self.create_item(FILLER_NAME))
         self.multiworld.itempool += pool
 
@@ -131,6 +148,7 @@ class NeedlecheckWorld(World):
 
     def fill_slot_data(self) -> dict:
         return {
+            "death_link": bool(getattr(self.options, "death_link", False)),
             "albums": [
                 {
                     "id": album["id"],
@@ -145,6 +163,7 @@ class NeedlecheckWorld(World):
                             "name": track["name"],
                             "location_name": track["location_name"],
                             "location_id": track["location_id"],
+                            "duration_ms": int(track.get("duration_ms") or 0),
                             "source": track["source"],
                         }
                         for track in album["tracks"]
