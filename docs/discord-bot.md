@@ -124,6 +124,10 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 
 Rotation prefers tracks that have not been listened to. Locked albums are silent until their item arrives. Starters are unlocked as soon as the room connects. A skip before 90% leaves the song unchecked, so it can come around again.
 
+Traps, when the seed has them, interrupt playback. Locked Groove picks an already listened song next. Wrong Speed changes the rate of the current song, up to 2× either way. Tonearm Lift pauses for 5 to 15 seconds. Several traps in one packet do each of those once, not stacked.
+
+DeathLink is receive-only. A death starts the current song over and resets its listen progress. Another death within a few seconds is ignored, so a burst does not restart the song over and over. The bot does not send deaths.
+
 ## 8. What this bot does not do
 
 It does not edit the crate. Change albums in the station, download a new YAML, and generate again. A seed that is already running keeps the crate it was generated with.

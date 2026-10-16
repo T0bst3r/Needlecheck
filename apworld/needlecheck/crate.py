@@ -15,6 +15,18 @@ LOCATION_BASE = 2_000_000_000
 ID_SPAN = 100_000_000
 FILLER_NAME = "Liner Notes"
 FILLER_ID = 2_900_000_001
+TRAP_GROOVE = "Locked Groove"
+TRAP_GROOVE_ID = 2_900_000_002
+TRAP_SPEED = "Wrong Speed"
+TRAP_SPEED_ID = 2_900_000_003
+TRAP_PAUSE = "Tonearm Lift"
+TRAP_PAUSE_ID = 2_900_000_004
+TRAP_NAMES = (TRAP_GROOVE, TRAP_SPEED, TRAP_PAUSE)
+TRAP_IDS = {
+    TRAP_GROOVE: TRAP_GROOVE_ID,
+    TRAP_SPEED: TRAP_SPEED_ID,
+    TRAP_PAUSE: TRAP_PAUSE_ID,
+}
 DASH = "—"
 YOUTUBE_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 URL_SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*://", re.IGNORECASE)
@@ -134,6 +146,15 @@ def _unique(base: str, seen: Counter, suffix: str) -> str:
     if seen[base] > 1:
         return f"{base} ({suffix})"
     return base
+
+
+def trap_fill(filler_count: int, percentage: int) -> int:
+    """How many filler items become traps. 0 leaves the pool as Liner Notes."""
+    if filler_count <= 0 or percentage <= 0:
+        return 0
+    if percentage > 100:
+        percentage = 100
+    return round(filler_count * percentage / 100)
 
 
 def claim(mapping: dict[str, int], name: str, code: int) -> None:
