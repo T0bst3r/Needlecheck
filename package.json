@@ -1,6 +1,7 @@
 {
   "name": "needlecheck-builder",
   "private": true,
+  "license": "MIT",
   "sideEffects": false,
   "type": "module",
   "overrides": {

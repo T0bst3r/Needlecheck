@@ -33,7 +33,7 @@ MEDIA_ROOT=./music npm run dev
 
 Paths written into the YAML are relative to that folder, which is what the bot expects.
 
-The package and container are `needlecheck-builder`. The bot package is `needlecheck-bot`. Neither package is published. The images are `ghcr.io/t0bst3r/needlecheck` and `ghcr.io/t0bst3r/needlecheck-builder`.
+The images are `ghcr.io/t0bst3r/needlecheck` and `ghcr.io/t0bst3r/needlecheck-builder`, for `linux/amd64` and `linux/arm64`.
 
 ## Spotify
 
