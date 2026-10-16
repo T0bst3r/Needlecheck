@@ -121,6 +121,13 @@ class CrateTest(unittest.TestCase):
         track = albums[0]["tracks"][0]
         self.assertEqual(registered_locations[track["location_name"]], track["location_id"])
 
+    def test_trap_fill_replaces_part_of_the_filler(self) -> None:
+        self.assertEqual(crate.trap_fill(0, 50), 0)
+        self.assertEqual(crate.trap_fill(10, 0), 0)
+        self.assertEqual(crate.trap_fill(10, 25), 2)
+        self.assertEqual(crate.trap_fill(1, 50), 0)
+        self.assertEqual(crate.trap_fill(1, 100), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

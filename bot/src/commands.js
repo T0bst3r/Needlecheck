@@ -1,6 +1,7 @@
 import { ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from "discord.js";
 import { allTracks } from "./slot.js";
 import { playbackCounts } from "./media.js";
+import { freshLabel } from "./queue.js";
 
 const ACCENT = 0xd0d4da;
 
@@ -16,6 +17,17 @@ export const commandData = [
   new SlashCommandBuilder().setName("skip").setDescription("Skip to the next track that can play"),
   new SlashCommandBuilder().setName("stop").setDescription("Stop playback"),
   new SlashCommandBuilder().setName("shuffle").setDescription("Toggle random rotation"),
+  new SlashCommandBuilder()
+    .setName("fresh")
+    .setDescription("How often the next song is one that has not been checked yet")
+    .addIntegerOption((option) =>
+      option
+        .setName("percent")
+        .setDescription("0 is any song, 100 is always unchecked. 80 is the default")
+        .setRequired(true)
+        .setMinValue(0)
+        .setMaxValue(100),
+    ),
   new SlashCommandBuilder().setName("np").setDescription("Now playing"),
   new SlashCommandBuilder()
     .setName("progress")
@@ -157,6 +169,12 @@ export async function handleCommand(interaction, ctx) {
     await interaction.reply(player.shuffle ? "Random rotation on." : "Album order on.");
     return;
   }
+  if (name === "fresh") {
+    const percent = interaction.options.getInteger("percent", true);
+    player.uncheckedPercent = percent;
+    await interaction.reply(freshLabel(percent) + ".");
+    return;
+  }
   if (name === "np") {
     const track = player.nowPlaying;
     if (!track) {
@@ -252,6 +270,7 @@ export async function handleCommand(interaction, ctx) {
             `Checks ${runtime.checked.size}/${total}`,
             `Shuffle ${player.shuffle ? "on" : "off"}`,
             `Progress ${progress.enabled ? "on" : "off"}`,
+            freshLabel(player.uncheckedPercent),
             `Files ${counts.file} under the music folder`,
             `YouTube ${runtime.youtube ? "on" : "off"}${counts.youtube ? ` · ${counts.youtube} tracks` : ""}`,
           ].join("\n"),
@@ -271,7 +290,8 @@ export async function handleCommand(interaction, ctx) {
             "",
             "The crate is the one in the generated room. /connect reads it. Changing rooms is another /connect, not a restart.",
             "Files play from the music folder, at the path written in the YAML. YouTube is off until /youtube enabled:True or YOUTUBE=1.",
-            "Album items unlock rotation. The first time a track actually starts, that location is checked.",
+            "Album items unlock rotation. A location is checked after about 90% of that track has played. Skipping earlier does not count. Traps interrupt playback. A death, if DeathLink is on, starts the current song over.",
+            "/fresh sets how often that next song is still unchecked. 100 always prefers one. 0 picks any unlocked song. The default is 80.",
             "",
             "`/connect` `/join` `/play` `/skip` `/crate list` `/youtube` `/progress`",
           ].join("\n"),

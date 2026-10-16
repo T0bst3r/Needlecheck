@@ -1,6 +1,6 @@
 # Discord bot
 
-The bot joins a voice channel and plays the crate from the room it is connected to. Album items unlock rotation. The first time a track actually starts, that location is checked.
+The bot joins a voice channel and plays the crate from the room it is connected to. Album items unlock rotation. A location is checked after about 90% of that track has played. Skipping earlier does not count. If the length cannot be read, the check happens when the track finishes on its own.
 
 Audio does not come from Spotify. Spotify in the station is only a search index.
 
@@ -103,6 +103,7 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 | `MEDIA_ROOT` | no | Path inside the container. Compose sets `/music` |
 | `NEEDLECHECK_ONLINE` | no | `1` hides the music folder on the builder. The bot ignores it. |
 | `YOUTUBE` | no | `1` enables video-id tracks. Default off |
+| `UNCHECKED_PERCENT` | no | Chance the next song is still unchecked, from 0 to 100. Default `80`. `100` always prefers one. `0` picks any unlocked song. `/fresh` changes it until restart |
 | `YTDLP_COOKIES` | no | Only used when YouTube is on |
 | `ANNOUNCE_CHANNEL_ID` | no | Unlocks, checks, and room text |
 
@@ -117,13 +118,19 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 | `/play [query]` | An unlocked track, or whatever the rotation picks |
 | `/pause` `/resume` `/skip` `/stop` | Transport |
 | `/shuffle` | Random, or album order |
+| `/fresh percent:` | How often the next song is still unchecked. `80` is about 80% unchecked and 20% already checked |
 | `/np` | Now playing, and whether it is a file or YouTube |
 | `/progress enabled:` | Post one message that follows the song, or delete it. It edits every few seconds. Off by default |
 | `/crate list` | Locked, unlocked, file count, video count |
 | `/youtube enabled:` | Optional backend, on or off |
 | `/status` `/help` | Room and what can play |
 
-Rotation prefers tracks that have not been checked. Locked albums are silent until their item arrives. Starters are unlocked as soon as the room connects.
+`/fresh` chooses that mix. `100` plays an unchecked song whenever one is left. `0` picks any unlocked song, checked or not. The default is `80`: about four of every five songs are still unchecked, and the fifth is one you already heard. If only one of those groups is left, that group plays. Locked albums stay silent until their item arrives. Starters are unlocked as soon as the room connects. The default can be set with `UNCHECKED_PERCENT`. `/fresh` lasts until the bot restarts.
+Rotation prefers tracks that have not been listened to. Locked albums are silent until their item arrives. Starters are unlocked as soon as the room connects. A skip before 90% leaves the song unchecked, so it can come around again.
+
+Traps, when the seed has them, interrupt playback. Locked Groove picks an already listened song next. Wrong Speed changes the rate of the current song, up to 2× either way. Tonearm Lift pauses for 5 to 15 seconds. Several traps in one packet do each of those once, not stacked.
+
+DeathLink is receive-only. A death starts the current song over and resets its listen progress. Another death within a few seconds is ignored, so a burst does not restart the song over and over. The bot does not send deaths.
 
 `/progress enabled:True` posts a single message in that channel and edits it every few seconds with how far the song has got. Turning it off deletes the message. The bot's own status cannot show this bar.
 
