@@ -29,7 +29,7 @@ test("playback speed changes how fast the song is heard", () => {
   assert.equal(contentHeardMs(30_000, 10_000, 0.5), 35_000);
 });
 
-test("unchecked songs stay ahead of songs already listened to", () => {
+test("a full unchecked bias still plays an unheard song", () => {
   const played = new Set(["heard"]);
   const pick = chooseTrack({
     albums,
@@ -37,6 +37,8 @@ test("unchecked songs stay ahead of songs already listened to", () => {
     isPlayed: (id) => played.has(id),
     shuffle: false,
     preferPlayed: false,
+    uncheckedPercent: 100,
+    rand: () => 0.99,
   });
   assert.equal(pick.id, "fresh");
 });
