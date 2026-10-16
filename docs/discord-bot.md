@@ -128,7 +128,7 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 `/fresh` chooses that mix. `100` plays an unchecked song whenever one is left. `0` picks any unlocked song, checked or not. The default is `80`: about four of every five songs are still unchecked, and the fifth is one you already heard. If only one of those groups is left, that group plays. Locked albums stay silent until their item arrives. Starters are unlocked as soon as the room connects. The default can be set with `UNCHECKED_PERCENT`. `/fresh` lasts until the bot restarts.
 Rotation prefers tracks that have not been listened to. Locked albums are silent until their item arrives. Starters are unlocked as soon as the room connects. A skip before 90% leaves the song unchecked, so it can come around again.
 
-Traps, when the seed has them, interrupt playback. Locked Groove picks an already listened song next. Wrong Speed changes the rate of the current song, up to 2× either way. Tonearm Lift pauses for 5 to 15 seconds. Several traps in one packet do each of those once, not stacked.
+Traps, when the seed has them, interrupt playback. Locked Groove picks an already listened song next. Wrong Speed changes the rate of the current song, up to 2× either way. Tonearm Lift pauses for 5 to 15 seconds. Several traps in one packet do each of those once, not stacked. `/status` lists whichever of those is still in effect, and `/np` does too.
 
 DeathLink is receive-only. A death starts the current song over and resets its listen progress. Another death within a few seconds is ignored, so a burst does not restart the song over and over. The bot does not send deaths.
 

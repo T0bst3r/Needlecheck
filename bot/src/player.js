@@ -44,6 +44,7 @@ export class VoicePlayer {
     this.listen = null;
     this.listenTimer = null;
     this.pauseTimer = null;
+    this.pauseUntil = 0;
     this.avoidOnce = null;
     this.userSkipped = false;
 
@@ -351,6 +352,7 @@ export class VoicePlayer {
   clearPause() {
     if (this.pauseTimer) clearTimeout(this.pauseTimer);
     this.pauseTimer = null;
+    this.pauseUntil = 0;
   }
 
   armListen(track, resource) {
@@ -389,7 +391,10 @@ export class VoicePlayer {
     this.player.pause();
     const token = this.current;
     this.clearPause();
+    this.pendingPauseMs = 0;
+    this.pauseUntil = Date.now() + ms;
     this.pauseTimer = setTimeout(() => {
+      this.pauseUntil = 0;
       if (this.current !== token) return;
       if (this.player.state.status === AudioPlayerStatus.Paused) this.player.unpause();
     }, ms);
