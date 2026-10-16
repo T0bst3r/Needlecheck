@@ -2,6 +2,7 @@ import { ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from "di
 import { allTracks } from "./slot.js";
 import { playbackCounts } from "./media.js";
 import { activeTraps, trapsLine } from "./effects.js";
+import { freshLabel } from "./queue.js";
 
 const ACCENT = 0xd0d4da;
 
@@ -17,7 +18,24 @@ export const commandData = [
   new SlashCommandBuilder().setName("skip").setDescription("Skip to the next track that can play"),
   new SlashCommandBuilder().setName("stop").setDescription("Stop playback"),
   new SlashCommandBuilder().setName("shuffle").setDescription("Toggle random rotation"),
+  new SlashCommandBuilder()
+    .setName("fresh")
+    .setDescription("How often the next song is one that has not been checked yet")
+    .addIntegerOption((option) =>
+      option
+        .setName("percent")
+        .setDescription("0 is any song, 100 is always unchecked. 80 is the default")
+        .setRequired(true)
+        .setMinValue(0)
+        .setMaxValue(100),
+    ),
   new SlashCommandBuilder().setName("np").setDescription("Now playing"),
+  new SlashCommandBuilder()
+    .setName("progress")
+    .setDescription("Post a message that follows the current song, or remove it")
+    .addBooleanOption((option) =>
+      option.setName("enabled").setDescription("Turn the updating message on or off").setRequired(true),
+    ),
   new SlashCommandBuilder()
     .setName("crate")
     .setDescription("Show what this room unlocked")
@@ -59,7 +77,7 @@ function inVoice(interaction) {
 }
 
 export async function handleCommand(interaction, ctx) {
-  const { runtime, player, ap } = ctx;
+  const { runtime, player, ap, progress } = ctx;
   const name = interaction.commandName;
 
   if (name === "join") {
@@ -153,6 +171,12 @@ export async function handleCommand(interaction, ctx) {
     await interaction.reply(player.shuffle ? "Random rotation on." : "Album order on.");
     return;
   }
+  if (name === "fresh") {
+    const percent = interaction.options.getInteger("percent", true);
+    player.uncheckedPercent = percent;
+    await interaction.reply(freshLabel(percent) + ".");
+    return;
+  }
   if (name === "np") {
     const track = player.nowPlaying;
     if (!track) {
@@ -160,6 +184,20 @@ export async function handleCommand(interaction, ctx) {
       return;
     }
     await interaction.reply({ embeds: [npEmbed(track, activeTraps(player))] });
+    return;
+  }
+
+  if (name === "progress") {
+    const enabled = interaction.options.getBoolean("enabled", true);
+    if (enabled && !interaction.channel?.isTextBased?.()) {
+      await interaction.reply({ content: "Use this in a channel where the bot can post.", flags: MessageFlags.Ephemeral });
+      return;
+    }
+    await progress.setEnabled(enabled, interaction.channel);
+    await interaction.reply({
+      content: enabled ? "Progress message on. It updates every few seconds." : "Progress message off.",
+      flags: MessageFlags.Ephemeral,
+    });
     return;
   }
 
@@ -233,6 +271,8 @@ export async function handleCommand(interaction, ctx) {
             `Albums ${runtime.unlocked.size}/${runtime.crate.length}`,
             `Checks ${runtime.checked.size}/${total}`,
             `Shuffle ${player.shuffle ? "on" : "off"}`,
+            `Progress ${progress.enabled ? "on" : "off"}`,
+            freshLabel(player.uncheckedPercent),
             `Files ${counts.file} under the music folder`,
             `YouTube ${runtime.youtube ? "on" : "off"}${counts.youtube ? ` · ${counts.youtube} tracks` : ""}`,
             trapsLine(player),
@@ -254,8 +294,9 @@ export async function handleCommand(interaction, ctx) {
             "The crate is the one in the generated room. /connect reads it. Changing rooms is another /connect, not a restart.",
             "Files play from the music folder, at the path written in the YAML. YouTube is off until /youtube enabled:True or YOUTUBE=1.",
             "Album items unlock rotation. A location is checked after about 90% of that track has played. Skipping earlier does not count. Traps interrupt playback. A death, if DeathLink is on, starts the current song over.",
+            "/fresh sets how often that next song is still unchecked. 100 always prefers one. 0 picks any unlocked song. The default is 80.",
             "",
-            "`/connect` `/join` `/play` `/skip` `/crate list` `/youtube`",
+            "`/connect` `/join` `/play` `/skip` `/crate list` `/youtube` `/progress`",
           ].join("\n"),
         ),
       ],

@@ -1,3 +1,5 @@
+import { parseUncheckedPercent } from "./queue.js";
+
 function opt(name, fallback = "") {
   return (process.env[name] ?? "").trim() || fallback;
 }
@@ -20,4 +22,5 @@ export const config = {
   announceChannelId: opt("ANNOUNCE_CHANNEL_ID"),
   ytdlpCookies: opt("YTDLP_COOKIES"),
   youtube: flag("YOUTUBE"),
+  uncheckedPercent: parseUncheckedPercent(process.env.UNCHECKED_PERCENT),
 };
