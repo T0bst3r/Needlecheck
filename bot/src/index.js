@@ -152,6 +152,9 @@ player = new VoicePlayer({
   onDuration() {
     progress.ping().catch(() => {});
   },
+  onProgress() {
+    progress.ping().catch(() => {});
+  },
   async onTrackStart() {
     progress.ping().catch(() => {});
   },
@@ -196,10 +199,10 @@ client.once(Events.ClientReady, async (ready) => {
     try {
       await ap.connect({
         host: config.apHost,
-        port: config.apPort,
+        port: config.apPort || "38281",
         slot: config.apSlot,
         password: config.apPassword,
-        game: config.apGame,
+        game: config.apGame || "Needlecheck",
       });
     } catch (err) {
       console.error("AP auto-connect failed:", err.message);

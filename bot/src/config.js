@@ -1,7 +1,11 @@
 import { parseUncheckedPercent } from "./queue.js";
 
+function present(name) {
+  return (process.env[name] ?? "").trim();
+}
+
 function opt(name, fallback = "") {
-  return (process.env[name] ?? "").trim() || fallback;
+  return present(name) || fallback;
 }
 
 function flag(name) {
@@ -13,11 +17,11 @@ export const config = {
   discordToken: opt("DISCORD_TOKEN"),
   discordClientId: opt("DISCORD_CLIENT_ID"),
   discordGuildId: opt("DISCORD_GUILD_ID"),
-  apHost: opt("AP_HOST"),
-  apPort: opt("AP_PORT", "38281"),
-  apSlot: opt("AP_SLOT"),
-  apPassword: opt("AP_PASSWORD"),
-  apGame: opt("AP_GAME", "Needlecheck"),
+  apHost: present("AP_HOST"),
+  apPort: present("AP_PORT"),
+  apSlot: present("AP_SLOT"),
+  apPassword: present("AP_PASSWORD"),
+  apGame: present("AP_GAME"),
   mediaRoot: opt("MEDIA_ROOT", "/music"),
   announceChannelId: opt("ANNOUNCE_CHANNEL_ID"),
   ytdlpCookies: opt("YTDLP_COOKIES"),

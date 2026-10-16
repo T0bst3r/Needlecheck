@@ -54,3 +54,19 @@ export function playbackCounts(albums, youtube) {
   }
   return { file, youtube: video, playable: file + (youtube ? video : 0) };
 }
+
+export function readySongs(albums, isUnlocked, youtube) {
+  let ready = 0;
+  let waiting = 0;
+  for (const album of albums) {
+    if (!isUnlocked(album.id)) continue;
+    for (const track of album.tracks) {
+      if (track.source?.kind === "file") ready += 1;
+      else if (track.source?.kind === "youtube") {
+        if (youtube) ready += 1;
+        else waiting += 1;
+      }
+    }
+  }
+  return { ready, waiting };
+}

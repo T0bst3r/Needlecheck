@@ -45,17 +45,64 @@ test("turning the message off deletes it and stops the updates", async () => {
   assert.equal(board.enabled, false);
 });
 
-test("a gap between songs keeps the last bar", async () => {
-  let edits = 0;
+test("a finished song does not stay on the message", async () => {
+  let title = "";
   const board = new ProgressBoard({
     player: { snapshot: () => ({ track: null }), advance: true },
     intervalMs: 60_000,
   });
   board.enabled = true;
-  board.channel = { send: async () => ({ edit: async () => { edits += 1; } }) };
-  board.message = { edit: async () => { edits += 1; } };
-  board.last = "kept";
+  board.epoch = 1;
+  board.channel = { send: async () => ({ edit: async () => {} }) };
+  board.message = {
+    edit: async (body) => {
+      title = body.embeds[0].data.title;
+    },
+  };
+  board.last = "old";
   await board.tick();
-  assert.equal(edits, 0);
+  assert.equal(title, "Needlecheck");
   board.stop();
+});
+
+test("a message posted after progress is turned off is deleted", async () => {
+  let release;
+  let started;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const reached = new Promise((resolve) => {
+    started = resolve;
+  });
+  let deleted = 0;
+  const board = new ProgressBoard({
+    player: {
+      snapshot: () => ({ track, playedMs: 1000, durationMs: 0, paused: false }),
+      advance: true,
+    },
+    intervalMs: 60_000,
+  });
+  board.enabled = true;
+  board.epoch = 1;
+  board.channel = {
+    send: () => {
+      started();
+      return gate.then(() => ({
+        delete: async () => {
+          deleted += 1;
+        },
+        edit: async () => {},
+      }));
+    },
+  };
+  const pending = board.tick();
+  await reached;
+  const disabling = board.setEnabled(false);
+  release();
+  await pending;
+  await disabling;
+  assert.equal(deleted, 1);
+  assert.equal(board.message, null);
+  assert.equal(board.timer, null);
+  assert.equal(board.enabled, false);
 });

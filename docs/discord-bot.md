@@ -110,7 +110,7 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 
 | Command | What it does |
 | --- | --- |
-| `/connect host: slot:` | Join a room and load its crate. Optional `port`, `password`, `game` |
+| `/connect` | Join a room. Fields already set in the env are filled in, and anything you type overrides them. Password is always optional |
 | `/disconnect` | Leave the room and drop the crate |
 | `/join` | Join your voice channel and start rotation |
 | `/leave` | Disconnect voice |

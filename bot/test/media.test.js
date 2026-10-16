@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { planPlayback, playbackCounts, resolveMedia } from "../src/media.js";
+import { planPlayback, playbackCounts, readySongs, resolveMedia } from "../src/media.js";
 
 test("file paths stay inside the music folder", () => {
   const hit = resolveMedia("/music", "miles/kind of blue/so what.mp3");
@@ -48,4 +48,13 @@ test("counts ignore youtube tracks while the backend is off", () => {
   ];
   assert.deepEqual(playbackCounts(albums, false), { file: 1, youtube: 1, playable: 1 });
   assert.equal(playbackCounts(albums, true).playable, 2);
+});
+
+test("ready songs are the unlocked ones the bot can play", () => {
+  const albums = [
+    { id: "open", tracks: [{ source: { kind: "file" } }, { source: { kind: "youtube" } }] },
+    { id: "shut", tracks: [{ source: { kind: "file" } }] },
+  ];
+  assert.deepEqual(readySongs(albums, (id) => id === "open", false), { ready: 1, waiting: 1 });
+  assert.deepEqual(readySongs(albums, (id) => id === "open", true), { ready: 2, waiting: 0 });
 });
