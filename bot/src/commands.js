@@ -1,6 +1,7 @@
 import { ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from "discord.js";
 import { allTracks } from "./slot.js";
 import { playbackCounts } from "./media.js";
+import { activeTraps, trapsLine } from "./effects.js";
 
 const ACCENT = 0xd0d4da;
 
@@ -42,12 +43,13 @@ function embed(title, description) {
   return new EmbedBuilder().setColor(ACCENT).setTitle(title).setDescription(description.slice(0, 4000));
 }
 
-function npEmbed(track) {
+function npEmbed(track, traps) {
   const via = track.source.kind === "file" ? track.source.path : "YouTube";
+  const extra = traps?.length ? `\n${traps.join("\n")}` : "";
   return new EmbedBuilder()
     .setColor(0x8fa38a)
     .setTitle(track.name)
-    .setDescription(`${track.artist}\n*${track.albumName}*\n${via}`);
+    .setDescription(`${track.artist}\n*${track.albumName}*\n${via}${extra}`);
 }
 
 function inVoice(interaction) {
@@ -157,7 +159,7 @@ export async function handleCommand(interaction, ctx) {
       await interaction.reply("Silence.");
       return;
     }
-    await interaction.reply({ embeds: [npEmbed(track)] });
+    await interaction.reply({ embeds: [npEmbed(track, activeTraps(player))] });
     return;
   }
 
@@ -233,6 +235,7 @@ export async function handleCommand(interaction, ctx) {
             `Shuffle ${player.shuffle ? "on" : "off"}`,
             `Files ${counts.file} under the music folder`,
             `YouTube ${runtime.youtube ? "on" : "off"}${counts.youtube ? ` · ${counts.youtube} tracks` : ""}`,
+            trapsLine(player),
           ].join("\n"),
         ),
       ],
