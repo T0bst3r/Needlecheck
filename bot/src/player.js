@@ -15,7 +15,7 @@ import { planPlayback, resolveMedia } from "./media.js";
 import { chooseTrack } from "./queue.js";
 
 export class VoicePlayer {
-  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onListened, onIdle, onSkip, log }) {
+  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onListened, onIdle, onSkip, log, uncheckedPercent }) {
     this.getCrate = getCrate;
     this.isUnlocked = isUnlocked;
     this.isPlayed = isPlayed;
@@ -28,6 +28,7 @@ export class VoicePlayer {
     this.player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
     this.connection = null;
     this.shuffle = true;
+    this.uncheckedPercent = uncheckedPercent ?? 80;
     this.nowPlaying = null;
     this.advance = true;
     this.starting = false;
@@ -168,6 +169,7 @@ export class VoicePlayer {
       isPlayed: (trackId) => this.isPlayed(trackId),
       shuffle: this.shuffle,
       avoid,
+      uncheckedPercent: this.uncheckedPercent,
       preferPlayed: this.forcePlayed,
     });
     return track;

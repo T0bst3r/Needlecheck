@@ -103,6 +103,7 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 | `MEDIA_ROOT` | no | Path inside the container. Compose sets `/music` |
 | `NEEDLECHECK_ONLINE` | no | `1` hides the music folder on the builder. The bot ignores it. |
 | `YOUTUBE` | no | `1` enables video-id tracks. Default off |
+| `UNCHECKED_PERCENT` | no | Chance the next song is still unchecked, from 0 to 100. Default `80`. `100` always prefers one. `0` picks any unlocked song. `/fresh` changes it until restart |
 | `YTDLP_COOKIES` | no | Only used when YouTube is on |
 | `ANNOUNCE_CHANNEL_ID` | no | Unlocks, checks, and room text |
 
@@ -117,11 +118,13 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 | `/play [query]` | An unlocked track, or whatever the rotation picks |
 | `/pause` `/resume` `/skip` `/stop` | Transport |
 | `/shuffle` | Random, or album order |
+| `/fresh percent:` | How often the next song is still unchecked. `80` is about 80% unchecked and 20% already checked |
 | `/np` | Now playing, and whether it is a file or YouTube |
 | `/crate list` | Locked, unlocked, file count, video count |
 | `/youtube enabled:` | Optional backend, on or off |
 | `/status` `/help` | Room and what can play |
 
+`/fresh` chooses that mix. `100` plays an unchecked song whenever one is left. `0` picks any unlocked song, checked or not. The default is `80`: about four of every five songs are still unchecked, and the fifth is one you already heard. If only one of those groups is left, that group plays. Locked albums stay silent until their item arrives. Starters are unlocked as soon as the room connects. The default can be set with `UNCHECKED_PERCENT`. `/fresh` lasts until the bot restarts.
 Rotation prefers tracks that have not been listened to. Locked albums are silent until their item arrives. Starters are unlocked as soon as the room connects. A skip before 90% leaves the song unchecked, so it can come around again.
 
 Traps, when the seed has them, interrupt playback. Locked Groove picks an already listened song next. Wrong Speed changes the rate of the current song, up to 2× either way. Tonearm Lift pauses for 5 to 15 seconds. Several traps in one packet do each of those once, not stacked.
