@@ -40,3 +40,5 @@ bot/                   Discord voice bot
 docs/                  setup
 src/                   station
 ```
+
+MIT licensed. See [LICENSE](LICENSE).

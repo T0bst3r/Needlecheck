@@ -66,16 +66,15 @@ On Docker Desktop for Mac or Windows, host networking does not reach the machine
 
 ## 5. Image
 
-Merges to `main` publish `ghcr.io/t0bst3r/needlecheck` (the bot) and `ghcr.io/t0bst3r/needlecheck-builder` (the page).
+Merges to `main` publish `ghcr.io/t0bst3r/needlecheck` (the bot) and `ghcr.io/t0bst3r/needlecheck-builder` (the page). Each image is `linux/amd64` and `linux/arm64`, so a PC, a 64-bit Raspberry Pi, and Apple Silicon pull the same tag.
 
-The repository is private, so the package is private until you change that.
+Make the repository public before the first publish if you want those packages to be public. A package created while the repository was private stays private. Opening the repository does not change it, and a later build does not either. Set visibility to public on the package page.
 
 ```sh
-echo "$GITHUB_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
 docker pull ghcr.io/t0bst3r/needlecheck:latest
 ```
 
-After the first publish, open the package → Package settings, and grant this repo access to it.
+After the first publish, open the package, then Package settings, and grant this repo access to it if the workflow could not.
 
 ## 6. Run
 
