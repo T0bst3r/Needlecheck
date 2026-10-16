@@ -20,6 +20,7 @@ export class ArchipelagoClient {
     this.shouldReconnect = false;
     this.endpoint = "";
     this.uuid = randomUUID();
+    this.tags = ["AP", "Needlecheck"];
   }
 
   get connected() {
@@ -30,6 +31,7 @@ export class ArchipelagoClient {
     this.disconnect(false);
     this.opts = opts;
     this.shouldReconnect = true;
+    this.tags = ["AP", "Needlecheck"];
     this.endpoint = `${opts.host}:${opts.port || "38281"} · ${opts.slot}`;
     const url = toWsUrl(opts.host, opts.port);
     this.handlers.onStatus("connecting", url);
@@ -89,7 +91,7 @@ export class ArchipelagoClient {
           uuid: this.uuid,
           version: { major: 0, minor: 6, build: 2, class: "Version" },
           items_handling: 0b111,
-          tags: ["AP", "Needlecheck"],
+          tags: this.tags,
           slot_data: true,
         },
       ]);
@@ -109,11 +111,14 @@ export class ArchipelagoClient {
         players: (pkt.players ?? []).map((p) => ({ name: p.name, alias: p.alias, slot: p.slot })),
       });
       resolveConnected();
+      if (pkt.slot_data?.death_link) this.updateTags([...this.tags, "DeathLink"]);
     } else if (pkt.cmd === "ConnectionRefused") {
       const errors = pkt.errors ?? ["refused"];
       fail(errors.join(", "));
     } else if (pkt.cmd === "ReceivedItems") {
       this.handlers.onItems?.(pkt.items ?? [], pkt.index ?? 0);
+    } else if (pkt.cmd === "Bounced") {
+      if ((pkt.tags ?? []).includes("DeathLink")) this.handlers.onDeath?.(pkt.data ?? {});
     } else if (pkt.cmd === "PrintJSON") {
       const text = flattenPrint(pkt);
       if (text) this.handlers.onPrint?.(text);
@@ -121,6 +126,11 @@ export class ArchipelagoClient {
       const checked = pkt.checked_locations;
       if (checked?.length) this.handlers.onChecked?.(checked);
     }
+  }
+
+  updateTags(tags) {
+    this.tags = tags;
+    this.send([{ cmd: "ConnectUpdate", tags }]);
   }
 
   checkLocations(ids) {

@@ -269,7 +269,7 @@ export async function handleCommand(interaction, ctx) {
             "",
             "The crate is the one in the generated room. /connect reads it. Changing rooms is another /connect, not a restart.",
             "Files play from the music folder, at the path written in the YAML. YouTube is off until /youtube enabled:True or YOUTUBE=1.",
-            "Album items unlock rotation. The first time a track actually starts, that location is checked.",
+            "Album items unlock rotation. A location is checked after about 90% of that track has played. Skipping earlier does not count. Traps interrupt playback. A death, if DeathLink is on, starts the current song over.",
             "/fresh sets how often that next song is still unchecked. 100 always prefers one. 0 picks any unlocked song. The default is 80.",
             "",
             "`/connect` `/join` `/play` `/skip` `/crate list` `/youtube`",

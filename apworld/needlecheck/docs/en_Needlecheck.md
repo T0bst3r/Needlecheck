@@ -12,7 +12,9 @@ Every track on those albums is a location: `First Play - {track} [{album} — {a
 
 A track with no source is not a location. `source.kind` is `youtube` (a video id) or `file` (a path on the machine that will play it). This world does not play audio.
 
-Filler is `Liner Notes`.
+Filler is `Liner Notes`. `trap_percentage` replaces some of those with `Locked Groove`, `Wrong Speed`, and `Tonearm Lift`. Traps do not remove albums.
+
+`death_link` restarts the song that is playing. This world does not send a death.
 
 ## Goal
 

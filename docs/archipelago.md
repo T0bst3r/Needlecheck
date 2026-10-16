@@ -10,6 +10,9 @@ The schema for that list is [apworld/needlecheck/crate.schema.json](../apworld/n
 | --- | --- | --- |
 | Item | `Album - {album} — {artist}` | Progression. `starter: true` albums are precollected. |
 | Item | `Liner Notes` | Filler. Fills locations that do not hold an album. |
+| Item | `Locked Groove` | Trap. The next song is one that was already listened to. |
+| Item | `Wrong Speed` | Trap. The current song plays faster or slower, from 0.5× to 2×. |
+| Item | `Tonearm Lift` | Trap. Playback pauses for 5 to 15 seconds. |
 | Location | `First Play - {track} [{album} — {artist}]` | In logic only after that album item is collected. |
 
 If two albums in one crate would share a name, the album id is appended in parentheses. Location names do the same with `album id/track id` when a track title repeats.
@@ -17,6 +20,8 @@ If two albums in one crate would share a name, the album id is appended in paren
 Ids are a hash of the name, so two slots that name an album the same way get the same item id. The world registers those names during generation. The seed's slot data repeats them, which is what the station reads if the datapackage was built before the names existed.
 
 Goal: collect every album item.
+
+`trap_percentage` (0 by default) is how many of the Liner Notes are traps instead. Traps never remove an album. `death_link: true` is the usual Archipelago option. Needlecheck restarts the current song when a death arrives, and it never sends one. Both stay off until the YAML turns them on. A new apworld (0.3.0) is required. An older seed has neither.
 
 ## Crate shape
 
@@ -81,7 +86,7 @@ Do not expect the website's player-options form to edit the crate. The option is
 
 **Bot:** `/connect` with that host, port, and slot. It reads this seed's crate from the room, then plays file paths from its music folder. YouTube tracks stay silent unless YouTube is turned on. Another `/connect` points it at a different room without a restart. See [the Discord bot](discord-bot.md).
 
-First plays send location checks. Received album items unlock that album. The station does not play the YouTube video or the file. It plays a short preview when the catalog has one. The bot is what plays the full track.
+The bot checks a location after about 90% of that track has played. Skipping earlier does not count. Received album items unlock that album. The station does not play the YouTube video or the file. It plays a short preview when the catalog has one. The bot is what plays the full track.
 
 ## 4. Changing the crate
 

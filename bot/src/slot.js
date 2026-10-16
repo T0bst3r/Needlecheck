@@ -35,6 +35,7 @@ export function parseSlotCrate(data) {
         albumName: String(raw.name ?? ""),
         locationId: track.location_id,
         locationName: track.location_name,
+        durationMs: Number.isFinite(track.duration_ms) && track.duration_ms > 0 ? Math.round(track.duration_ms) : 0,
         source,
       });
     }

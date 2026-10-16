@@ -1,6 +1,6 @@
 # Discord bot
 
-The bot joins a voice channel and plays the crate from the room it is connected to. Album items unlock rotation. The first time a track actually starts, that location is checked.
+The bot joins a voice channel and plays the crate from the room it is connected to. Album items unlock rotation. A location is checked after about 90% of that track has played. Skipping earlier does not count. If the length cannot be read, the check happens when the track finishes on its own.
 
 Audio does not come from Spotify. Spotify in the station is only a search index.
 
@@ -125,6 +125,11 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 | `/status` `/help` | Room and what can play |
 
 `/fresh` chooses that mix. `100` plays an unchecked song whenever one is left. `0` picks any unlocked song, checked or not. The default is `80`: about four of every five songs are still unchecked, and the fifth is one you already heard. If only one of those groups is left, that group plays. Locked albums stay silent until their item arrives. Starters are unlocked as soon as the room connects. The default can be set with `UNCHECKED_PERCENT`. `/fresh` lasts until the bot restarts.
+Rotation prefers tracks that have not been listened to. Locked albums are silent until their item arrives. Starters are unlocked as soon as the room connects. A skip before 90% leaves the song unchecked, so it can come around again.
+
+Traps, when the seed has them, interrupt playback. Locked Groove picks an already listened song next. Wrong Speed changes the rate of the current song, up to 2× either way. Tonearm Lift pauses for 5 to 15 seconds. Several traps in one packet do each of those once, not stacked.
+
+DeathLink is receive-only. A death starts the current song over and resets its listen progress. Another death within a few seconds is ignored, so a burst does not restart the song over and over. The bot does not send deaths.
 
 ## 8. What this bot does not do
 

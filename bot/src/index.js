@@ -5,6 +5,7 @@ import { commandData, handleCommand } from "./commands.js";
 import { config } from "./config.js";
 import { VoicePlayer } from "./player.js";
 import { albumByItemId, parseSlotCrate, starterIds, trackByLocationId } from "./slot.js";
+import { deathSource, planTraps } from "./effects.js";
 
 if (!config.discordToken) {
   console.error("DISCORD_TOKEN is required.");
@@ -23,6 +24,7 @@ const runtime = {
   announceChannel: null,
   youtube: config.youtube,
   pendingItems: null,
+  lastDeath: 0,
 };
 
 async function announce(text, track) {
@@ -60,6 +62,22 @@ function applyItems(items, index) {
       announce(`Unlocked **${album.name}** — ${album.artist}. It is in the rotation.`).catch(() => {});
     }
   }
+  const plan = planTraps(items, Math.random);
+  if (!plan.groove && plan.speed == null && !plan.pauseMs) return;
+  const notes = [];
+  if (plan.groove) {
+    player.forcePlayed = true;
+    notes.push("Locked groove. The next song is one you already heard.");
+  }
+  if (plan.speed != null) notes.push(`Wrong speed. Playing at ${plan.speed.toFixed(2)}×.`);
+  if (plan.pauseMs) notes.push(`Tonearm lift. Paused for ${Math.round(plan.pauseMs / 1000)} seconds.`);
+  announce(notes.join("\n")).catch(() => {});
+  if (plan.speed != null) {
+    if (plan.pauseMs) player.pendingPauseMs = Math.max(player.pendingPauseMs, plan.pauseMs);
+    player.applySpeed(plan.speed).catch((err) => console.error(err));
+    return;
+  }
+  if (plan.pauseMs) player.pauseFor(plan.pauseMs);
 }
 
 let player;
@@ -99,6 +117,21 @@ const ap = new ArchipelagoClient({
     if (config.announceChannelId && text) announce(text).catch(() => {});
     else if (text) console.log(text);
   },
+  onDeath(data) {
+    const now = Date.now();
+    if (now - runtime.lastDeath < 8000) return;
+    runtime.lastDeath = now;
+    const source = deathSource(data);
+    const track = player.nowPlaying;
+    if (!track) {
+      announce(`Death from ${source}. Nothing is playing.`).catch(() => {});
+      return;
+    }
+    player
+      .restart()
+      .then(() => announce(`Death from ${source}. Starting “${track.name}” over.`))
+      .catch((err) => announce(`Death from ${source}, but the song did not restart. ${err.message}`));
+  },
 });
 
 player = new VoicePlayer({
@@ -115,13 +148,14 @@ player = new VoicePlayer({
   onSkip(_track, message) {
     console.log(message);
   },
-  async onTrackStart(track) {
+  async onTrackStart() {},
+  async onListened(track) {
     const first = !runtime.played.has(track.id);
     runtime.played.add(track.id);
     if (!first) return;
     runtime.checked.add(track.locationId);
     if (ap.connected) ap.checkLocations([track.locationId]);
-    await announce(`First play. Checked ${track.locationName}.`, track);
+    await announce(`Listened. Checked ${track.locationName}.`, track);
   },
   async onIdle(message) {
     if (message) await announce(message);
