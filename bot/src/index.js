@@ -152,8 +152,10 @@ player = new VoicePlayer({
   onDuration() {
     progress.ping().catch(() => {});
   },
-  async onTrackStart(track) {
+  async onTrackStart() {
     progress.ping().catch(() => {});
+  },
+  async onListened(track) {
     const first = !runtime.played.has(track.id);
     runtime.played.add(track.id);
     if (!first) return;
