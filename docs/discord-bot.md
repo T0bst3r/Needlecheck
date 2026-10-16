@@ -1,6 +1,6 @@
 # Discord bot
 
-The bot joins a voice channel and plays the crate from the room it is connected to. Album items unlock rotation. The first time a track actually starts, that location is checked.
+The bot joins a voice channel and plays the crate from the room it is connected to. Album items unlock rotation. A location is checked after about 90% of that track has played. Skipping earlier does not count. If the length cannot be read, the check happens when the track finishes on its own.
 
 Audio does not come from Spotify. Spotify in the station is only a search index.
 
@@ -122,7 +122,7 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 | `/youtube enabled:` | Optional backend, on or off |
 | `/status` `/help` | Room and what can play |
 
-Rotation prefers tracks that have not been checked. Locked albums are silent until their item arrives. Starters are unlocked as soon as the room connects.
+Rotation prefers tracks that have not been listened to. Locked albums are silent until their item arrives. Starters are unlocked as soon as the room connects. A skip before 90% leaves the song unchecked, so it can come around again.
 
 ## 8. What this bot does not do
 

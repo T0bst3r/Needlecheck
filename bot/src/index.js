@@ -114,13 +114,14 @@ player = new VoicePlayer({
   onSkip(_track, message) {
     console.log(message);
   },
-  async onTrackStart(track) {
+  async onTrackStart() {},
+  async onListened(track) {
     const first = !runtime.played.has(track.id);
     runtime.played.add(track.id);
     if (!first) return;
     runtime.checked.add(track.locationId);
     if (ap.connected) ap.checkLocations([track.locationId]);
-    await announce(`First play. Checked ${track.locationName}.`, track);
+    await announce(`Listened. Checked ${track.locationName}.`, track);
   },
   async onIdle(message) {
     if (message) await announce(message);
