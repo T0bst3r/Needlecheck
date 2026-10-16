@@ -120,6 +120,7 @@ The image includes ffmpeg and yt-dlp. yt-dlp is unused while `YOUTUBE=0`. The bo
 | `/shuffle` | Random, or album order |
 | `/fresh percent:` | How often the next song is still unchecked. `80` is about 80% unchecked and 20% already checked |
 | `/np` | Now playing, and whether it is a file or YouTube |
+| `/progress enabled:` | Post one message that follows the song, or delete it. It edits every few seconds. Off by default |
 | `/crate list` | Locked, unlocked, file count, video count |
 | `/youtube enabled:` | Optional backend, on or off |
 | `/status` `/help` | Room and what can play |
@@ -130,6 +131,8 @@ Rotation prefers tracks that have not been listened to. Locked albums are silent
 Traps, when the seed has them, interrupt playback. Locked Groove picks an already listened song next. Wrong Speed changes the rate of the current song, up to 2× either way. Tonearm Lift pauses for 5 to 15 seconds. Several traps in one packet do each of those once, not stacked.
 
 DeathLink is receive-only. A death starts the current song over and resets its listen progress. Another death within a few seconds is ignored, so a burst does not restart the song over and over. The bot does not send deaths.
+
+`/progress enabled:True` posts a single message in that channel and edits it every few seconds with how far the song has got. Turning it off deletes the message. The bot's own status cannot show this bar.
 
 ## 8. What this bot does not do
 

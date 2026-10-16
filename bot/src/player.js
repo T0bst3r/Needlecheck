@@ -15,7 +15,7 @@ import { planPlayback, resolveMedia } from "./media.js";
 import { chooseTrack } from "./queue.js";
 
 export class VoicePlayer {
-  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onListened, onIdle, onSkip, log, uncheckedPercent }) {
+  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onListened, onIdle, onSkip, onDuration, log, uncheckedPercent}) {
     this.getCrate = getCrate;
     this.isUnlocked = isUnlocked;
     this.isPlayed = isPlayed;
@@ -24,12 +24,15 @@ export class VoicePlayer {
     this.onListened = onListened;
     this.onIdle = onIdle;
     this.onSkip = onSkip;
+    this.onDuration = onDuration;
     this.log = log ?? (() => {});
     this.player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
     this.connection = null;
     this.shuffle = true;
     this.uncheckedPercent = uncheckedPercent ?? 80;
     this.nowPlaying = null;
+    this.resource = null;
+    this.durationMs = 0;
     this.advance = true;
     this.starting = false;
     this.stopAudio = null;
@@ -51,6 +54,7 @@ export class VoicePlayer {
       if (!skipped) this.noteListen(true);
       this.clearListen();
       this.nowPlaying = null;
+      this.resource = null;
       this.playNext().catch((err) => this.log(err.message));
     });
     this.player.on("error", (err) => {
@@ -58,6 +62,7 @@ export class VoicePlayer {
       this.clearListen();
       if (this.stopAudio) this.stopAudio();
       this.nowPlaying = null;
+      this.resource = null;
       if (this.advance && !this.starting) this.playNext().catch(() => {});
     });
   }
@@ -130,6 +135,9 @@ export class VoicePlayer {
     this.stopAudio = null;
     this.player.stop(true);
     this.nowPlaying = null;
+    this.resource = null;
+    this.durationMs = 0;
+    this.onStopped?.();
   }
 
   pause() {
@@ -255,6 +263,9 @@ export class VoicePlayer {
       if (this.current !== token) return;
       const continuing = this.nowPlaying?.id === track.id;
       this.nowPlaying = track;
+      this.resource = opened.resource;
+      this.durationMs = track.durationMs || 0;
+      this.readDuration(track, token);
       if (!continuing) this.forcePlayed = false;
       this.armListen(track, opened.resource);
       await this.onTrackStart?.(track);
@@ -309,6 +320,27 @@ export class VoicePlayer {
     await this.onIdle?.("Skipped everything that is unlocked. Check the music folder, or turn YouTube on.");
   }
 
+  snapshot() {
+    if (!this.nowPlaying) return { track: null, playedMs: 0, durationMs: 0, paused: false };
+    const status = this.player.state.status;
+    return {
+      track: this.nowPlaying,
+      playedMs: this.resource?.playbackDuration ?? 0,
+      durationMs: this.durationMs,
+      paused: status === AudioPlayerStatus.Paused,
+    };
+  }
+
+  readDuration(track, token) {
+    if (this.durationMs > 0) return;
+    const source = probeTarget(track, this.getOptions());
+    if (!source) return;
+    probeDurationMs(source).then((ms) => {
+      if (this.current !== token || !this.nowPlaying || this.nowPlaying.id !== track.id || ms <= 0) return;
+      this.durationMs = ms;
+      this.onDuration?.();
+    });
+  }
   clearListen() {
     if (this.listenTimer) clearInterval(this.listenTimer);
     this.listenTimer = null;
