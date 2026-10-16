@@ -24,8 +24,13 @@ jobs:
         with:
           node-version: 24
 
+      - name: Install bot dependencies
+        working-directory: bot
+        run: npm ci
+
       - name: Run bot tests
-        run: node --test bot/test/*.js
+        working-directory: bot
+        run: npm test
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
