@@ -45,19 +45,23 @@ export class ProgressBoard {
     this.message = null;
     this.timer = null;
     this.last = "";
+    this.epoch = 0;
+    this.chain = Promise.resolve();
   }
 
   async setEnabled(enabled, channel) {
+    this.epoch += 1;
+    const epoch = this.epoch;
+    this.enabled = enabled;
+    this.stop();
     if (!enabled) {
-      this.enabled = false;
-      this.stop();
-      await this.remove();
+      this.channel = null;
+      await this.enqueue(() => this.remove());
       return;
     }
-    this.enabled = true;
     this.channel = channel;
-    await this.tick();
-    this.arm();
+    await this.enqueue(() => this.render(epoch, false));
+    if (this.epoch === epoch && this.enabled) this.arm();
   }
 
   arm() {
@@ -85,35 +89,66 @@ export class ProgressBoard {
     }
   }
 
+  tick(forceSilence = false) {
+    const epoch = this.epoch;
+    if (!this.enabled) return Promise.resolve();
+    return this.enqueue(() => this.render(epoch, forceSilence));
+  }
+
   async ping() {
-    if (!this.enabled) return;
-    await this.tick();
+    await this.tick(false);
   }
 
   async showSilence() {
-    if (!this.enabled) return;
     await this.tick(true);
   }
 
-  async tick(forceSilence = false) {
-    if (!this.enabled || !this.channel) return;
+  enqueue(job) {
+    const run = this.chain.then(job, job);
+    this.chain = run.then(
+      () => {},
+      () => {},
+    );
+    return run;
+  }
+
+  current(epoch) {
+    return this.enabled && this.epoch === epoch && this.channel;
+  }
+
+  async render(epoch, forceSilence) {
+    if (!this.current(epoch)) return;
     const snapshot = forceSilence ? { track: null, playedMs: 0, durationMs: 0, paused: false } : this.player.snapshot();
-    if (!snapshot.track && this.player.advance && this.message && !forceSilence) return;
     const text = progressText(snapshot);
-    const key = `${text.title}\n${text.description}`;
+    const key = `${snapshot.track?.id ?? ""}\n${text.title}\n${text.description}`;
     if (key === this.last && this.message) return;
-    this.last = key;
     const body = payload(snapshot);
     if (!this.message) {
-      this.message = await this.channel.send(body);
+      const sent = await this.channel.send(body);
+      if (!this.current(epoch)) {
+        await sent.delete().catch(() => {});
+        return;
+      }
+      this.message = sent;
+      this.last = key;
       return;
     }
     try {
       await this.message.edit(body);
     } catch {
+      const stale = this.message;
       this.message = null;
       this.last = "";
-      this.message = await this.channel.send(body);
+      await stale?.delete?.().catch(() => {});
+      if (!this.current(epoch)) return;
+      const sent = await this.channel.send(body);
+      if (!this.current(epoch)) {
+        await sent.delete().catch(() => {});
+        return;
+      }
+      this.message = sent;
     }
+    if (!this.current(epoch)) return;
+    this.last = key;
   }
 }

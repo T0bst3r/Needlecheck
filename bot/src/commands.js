@@ -1,8 +1,10 @@
 import { ChannelType, EmbedBuilder, MessageFlags, SlashCommandBuilder } from "discord.js";
 import { allTracks } from "./slot.js";
-import { playbackCounts } from "./media.js";
+import { playbackCounts, readySongs } from "./media.js";
 import { activeTraps, trapsLine } from "./effects.js";
 import { freshLabel } from "./queue.js";
+import { config } from "./config.js";
+import { connectPlan, resolveConnect } from "./connect-options.js";
 
 const ACCENT = 0xd0d4da;
 
@@ -40,14 +42,7 @@ export const commandData = [
     .setName("crate")
     .setDescription("Show what this room unlocked")
     .addSubcommand((sub) => sub.setName("list").setDescription("Locked and unlocked albums")),
-  new SlashCommandBuilder()
-    .setName("connect")
-    .setDescription("Connect to an Archipelago room. Replaces the current room without a restart")
-    .addStringOption((option) => option.setName("host").setDescription("Host, such as archipelago.gg").setRequired(true))
-    .addStringOption((option) => option.setName("slot").setDescription("Slot name").setRequired(true))
-    .addStringOption((option) => option.setName("port").setDescription("Port (default 38281)"))
-    .addStringOption((option) => option.setName("password").setDescription("Room password"))
-    .addStringOption((option) => option.setName("game").setDescription("Game name (default Needlecheck)")),
+  connectCommand(),
   new SlashCommandBuilder().setName("disconnect").setDescription("Disconnect from Archipelago"),
   new SlashCommandBuilder()
     .setName("youtube")
@@ -56,6 +51,18 @@ export const commandData = [
   new SlashCommandBuilder().setName("status").setDescription("Room, crate, and what can actually play"),
   new SlashCommandBuilder().setName("help").setDescription("How Needlecheck playback works"),
 ].map((command) => command.toJSON());
+
+function connectCommand() {
+  const command = new SlashCommandBuilder()
+    .setName("connect")
+    .setDescription("Connect to an Archipelago room. Replaces the current room without a restart");
+  for (const field of connectPlan(config)) {
+    command.addStringOption((option) =>
+      option.setName(field.name).setDescription(field.description).setRequired(field.required),
+    );
+  }
+  return command;
+}
 
 function embed(title, description) {
   return new EmbedBuilder().setColor(ACCENT).setTitle(title).setDescription(description.slice(0, 4000));
@@ -68,6 +75,11 @@ function npEmbed(track, traps) {
     .setColor(0x8fa38a)
     .setTitle(track.name)
     .setDescription(`${track.artist}\n*${track.albumName}*\n${via}${extra}`);
+}
+
+function songLine(runtime) {
+  const songs = readySongs(runtime.crate, (id) => runtime.unlocked.has(id), runtime.youtube);
+  return `Songs ${songs.ready} ready${songs.waiting ? ` · ${songs.waiting} waiting on YouTube` : ""}`;
 }
 
 function inVoice(interaction) {
@@ -225,16 +237,29 @@ export async function handleCommand(interaction, ctx) {
 
   if (name === "connect") {
     await interaction.deferReply();
-    const host = interaction.options.getString("host", true);
-    const slot = interaction.options.getString("slot", true);
-    const port = interaction.options.getString("port") || "38281";
-    const password = interaction.options.getString("password") || "";
-    const game = interaction.options.getString("game") || "Needlecheck";
+    const given = {
+      host: interaction.options.getString("host"),
+      slot: interaction.options.getString("slot"),
+      port: interaction.options.getString("port"),
+      password: interaction.options.getString("password"),
+      game: interaction.options.getString("game"),
+    };
+    const room = resolveConnect(given, config);
+    if (room.missing.length) {
+      await interaction.editReply(`Need ${room.missing.join(" and ")}.`);
+      return;
+    }
     runtime.announceChannel = interaction.channel;
-    await ap.connect({ host, port, slot, password, game });
+    await ap.connect({
+      host: room.host,
+      port: room.port,
+      slot: room.slot,
+      password: room.password,
+      game: room.game,
+    });
     const counts = playbackCounts(runtime.crate, runtime.youtube);
     await interaction.editReply(
-      `Connected to **${host}:${port}** as **${slot}**. ${runtime.crate.length} albums, ${counts.playable} playable right now${runtime.youtube ? "" : ` (${counts.youtube} waiting on YouTube)`}.`,
+      `Connected to **${room.host}:${room.port}** as **${room.slot}**. ${runtime.crate.length} albums, ${counts.playable} playable right now${runtime.youtube ? "" : ` (${counts.youtube} waiting on YouTube)`}.`,
     );
     return;
   }
@@ -269,6 +294,7 @@ export async function handleCommand(interaction, ctx) {
           [
             ap.connected ? `Room: ${ap.endpoint}` : "Room: offline",
             `Albums ${runtime.unlocked.size}/${runtime.crate.length}`,
+            songLine(runtime),
             `Checks ${runtime.checked.size}/${total}`,
             `Shuffle ${player.shuffle ? "on" : "off"}`,
             `Progress ${progress.enabled ? "on" : "off"}`,

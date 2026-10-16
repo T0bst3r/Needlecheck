@@ -15,7 +15,7 @@ import { planPlayback, resolveMedia } from "./media.js";
 import { chooseTrack } from "./queue.js";
 
 export class VoicePlayer {
-  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onListened, onIdle, onSkip, onDuration, log, uncheckedPercent}) {
+  constructor({ getCrate, isUnlocked, isPlayed, getOptions, onTrackStart, onListened, onIdle, onSkip, onDuration, onProgress, log, uncheckedPercent}) {
     this.getCrate = getCrate;
     this.isUnlocked = isUnlocked;
     this.isPlayed = isPlayed;
@@ -25,6 +25,7 @@ export class VoicePlayer {
     this.onIdle = onIdle;
     this.onSkip = onSkip;
     this.onDuration = onDuration;
+    this.onProgress = onProgress;
     this.log = log ?? (() => {});
     this.player = createAudioPlayer({ behaviors: { noSubscriber: NoSubscriberBehavior.Play } });
     this.connection = null;
@@ -56,6 +57,7 @@ export class VoicePlayer {
       this.clearListen();
       this.nowPlaying = null;
       this.resource = null;
+      this.onProgress?.();
       this.playNext().catch((err) => this.log(err.message));
     });
     this.player.on("error", (err) => {
@@ -64,6 +66,7 @@ export class VoicePlayer {
       if (this.stopAudio) this.stopAudio();
       this.nowPlaying = null;
       this.resource = null;
+      this.onProgress?.();
       if (this.advance && !this.starting) this.playNext().catch(() => {});
     });
   }
@@ -223,6 +226,7 @@ export class VoicePlayer {
     if (!this.connection || this.connection.state.status !== VoiceConnectionStatus.Ready) {
       throw new Error("Voice is not ready. Use /leave, then /join again.");
     }
+    const previousId = this.nowPlaying?.id ?? null;
     const token = {};
     this.current = token;
     this.starting = true;
@@ -232,6 +236,10 @@ export class VoicePlayer {
     this.speed = speed ?? this.pendingSpeed ?? 1;
     this.pendingSpeed = null;
     this.creditMs = creditMs ?? 0;
+    this.nowPlaying = null;
+    this.resource = null;
+    this.durationMs = 0;
+    this.onProgress?.();
     try {
       if (this.stopAudio) this.stopAudio();
       this.stopAudio = null;
@@ -262,7 +270,7 @@ export class VoicePlayer {
         throw err;
       }
       if (this.current !== token) return;
-      const continuing = this.nowPlaying?.id === track.id;
+      const continuing = previousId === track.id;
       this.nowPlaying = track;
       this.resource = opened.resource;
       this.durationMs = track.durationMs || 0;
@@ -326,7 +334,7 @@ export class VoicePlayer {
     const status = this.player.state.status;
     return {
       track: this.nowPlaying,
-      playedMs: this.resource?.playbackDuration ?? 0,
+      playedMs: contentHeardMs(this.creditMs, this.resource?.playbackDuration ?? 0, this.speed),
       durationMs: this.durationMs,
       paused: status === AudioPlayerStatus.Paused,
     };
